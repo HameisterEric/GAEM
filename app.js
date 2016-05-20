@@ -1,5 +1,7 @@
 var mongojs = require("mongojs");
-var db = mongojs('localhost:27017/myGame', ['account','progress']);
+var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
+//var db = mongojs('localhost:27017/myGame', ['account','progress']);
+console.log(db);
 var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
@@ -8,7 +10,7 @@ app.get("/", function(req, res){
 	res.sendFile(__dirname + '/client/index.html');
 });
 app.use('/client', express.static(__dirname + '/client'));
-var port = Number(process.env.PORT || 3000);
+var port = Number(process.env.PORT || 6969);
 serv.listen(port);
 
 var socketlist = {};
@@ -54,7 +56,7 @@ var Mob = function(id, difficulty){
 	self.y = Math.random()*500;
 	self.range = 20;
 	self.being = "mob" + difficulty;
-	self.speed = 3;
+	self.speed = 1;
 	self.damage = 10;
 	self.health = 50;
 	self.xpGiven = 10;
@@ -94,11 +96,13 @@ var Mob = function(id, difficulty){
 				}
 			}
 			if(position > -1){
-				if(closest<self.range*self.range) self.attacking = true;
 				self.target = Map.list[self.id].playerList[position];
-				var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
-				self.xSpeed = Math.cos(angle)*self.speed;
-				self.ySpeed = Math.sin(angle)*self.speed;
+				if(closest<self.range*self.range) self.attacking = true;
+				else{
+					var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
+					self.xSpeed = Math.cos(angle)*self.speed;
+					self.ySpeed = Math.sin(angle)*self.speed;
+				}
 			}
 		}
 	}
@@ -116,7 +120,7 @@ var Mob = function(id, difficulty){
 
 var Player = function(id){
 	var self = Entity(id);
-	self.speed = 5;
+	self.speed = 1;
 	self.being = "player"
 	self.health = 1000;
 	self.damage = 25;
@@ -153,11 +157,13 @@ var Player = function(id){
 				}
 			}
 			if(position > -1){
+				self.target = Map.list[self.id].mobList[position]
 				if(closest<self.range*self.range) self.attacking = true;
-				self.target = Map.list[self.id].mobList[position];
-				var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
-				self.xSpeed = Math.cos(angle)*self.speed;
-				self.ySpeed = Math.sin(angle)*self.speed;
+				else{;
+					var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
+					self.xSpeed = Math.cos(angle)*self.speed;
+					self.ySpeed = Math.sin(angle)*self.speed;
+				}
 			}
 		}
 	}
@@ -167,7 +173,6 @@ var Player = function(id){
 		target.health -= damageAfterModifyers;
 	}
 	self.levelUp = function(){
-		console.log(self.xp);
 		while (600 * Math.pow(6/5, self.level) - 500 <= self.xp) {
       self.level++;
 			console.log("leveled up");

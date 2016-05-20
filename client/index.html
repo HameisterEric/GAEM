@@ -1,3 +1,4 @@
+<title> Test </title>
 <div id ="signDiv">
 	Username: <input id = "signDiv-username" type = "text"></input><br>
 	Password: <input id = "signDiv-password" type = "password"></input>
@@ -13,6 +14,7 @@
 	<form id = "chat-form">
 		<input id = "chat-input" type = "text" style ="width:500px"> </input>
 	</form>
+	
 </div>
 <script src = "https://cdn.socket.io/socket.io-1.4.5.js"></script>
 <script>
@@ -69,4 +71,5 @@
 				socket.emit('sendText',chatInput.value);
 			chatInput.value = '';
 		}
+	window.onkeydown = function (e) {
 	</script>
