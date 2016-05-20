@@ -56,7 +56,7 @@ var Mob = function(id, difficulty){
 	self.y = Math.random()*500;
 	self.range = 20;
 	self.being = "mob" + difficulty;
-	self.speed = 1;
+	self.speed = 2;
 	self.damage = 10;
 	self.health = 50;
 	self.xpGiven = 10;
@@ -120,7 +120,7 @@ var Mob = function(id, difficulty){
 
 var Player = function(id){
 	var self = Entity(id);
-	self.speed = 1;
+	self.speed = 2;
 	self.being = "player"
 	self.health = 1000;
 	self.damage = 25;
@@ -283,8 +283,8 @@ setInterval(function(){
 		var pack = Map.update(i);
 		var socket = socketlist[i];
 		socket.emit('newPosition',pack);
-		if(Math.random()<.01){ 
+		if(Math.random()<.005){ 
 			Map.list[i].addMob(new Mob(i, 1));
 		}
 	}
-},1000/40);
+},1000/60);
