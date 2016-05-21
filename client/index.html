@@ -51,13 +51,17 @@
 	var chatInput = document.getElementById('chat-input');
 	var chatForm = document.getElementById('chat-form');
 	ctx.font = "30px Ariel";
+	var positions;
 		socket.on('newPosition',function(data){
+			positions = data;
+		});
+		socket.on('render', function(){
 			ctx.clearRect(0,0,500,500);
-			for(var i in data){
-				if(data[i].being === "player")
-					ctx.fillText('P',data[i].x, data[i].y);
+			for(var i in positions){
+				if(positions[i].being === "player")
+					ctx.fillText('P',positions[i].x, positions[i].y);
 				else{
-					ctx.fillRect(data[i].x,data[i].y,10,10);
+					ctx.fillRect(positions[i].x,positions[i].y,10,10);
 				}
 			}
 		});

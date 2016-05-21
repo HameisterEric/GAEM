@@ -1,7 +1,6 @@
 var mongojs = require("mongojs");
 var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
 //var db = mongojs('localhost:27017/myGame', ['account','progress']);
-console.log(db);
 var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
@@ -283,6 +282,7 @@ setInterval(function(){
 		var pack = Map.update(i);
 		var socket = socketlist[i];
 		socket.emit('newPosition',pack);
+		socket.emit('render');
 		if(Math.random()<.005){ 
 			Map.list[i].addMob(new Mob(i, 1));
 		}
