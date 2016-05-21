@@ -282,7 +282,6 @@ setInterval(function(){
 		var pack = Map.update(i);
 		var socket = socketlist[i];
 		socket.emit('newPosition',pack);
-		socket.emit('render');
 		if(Math.random()<.005){ 
 			Map.list[i].addMob(new Mob(i, 1));
 		}
