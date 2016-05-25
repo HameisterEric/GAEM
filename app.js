@@ -1,6 +1,6 @@
 var mongojs = require("mongojs");
-var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
-//var db = mongojs('localhost:27017/myGame', ['account','progress']);
+//var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
+var db = mongojs('localhost:27017/myGame', ['account','progress']);
 var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
@@ -43,7 +43,7 @@ var Map = function(mapId){
 		playerList: [],
 		initPack: {players:[],mobs:[]},
 		removePack: {players:[],mobs:[]},
-		mobCount: 0
+		mobCount: 0,
 		toDelete: false
 	}
 	self.addMob = function(mob){
