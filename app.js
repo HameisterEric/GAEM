@@ -327,5 +327,6 @@ setInterval(function(){
 		if(Math.random()<.005){ 
 			Map.list[i].addMob(new Mob(i, 1));
 		}
+		if(Map.list[i].toDelete) delete Map.list[i];
 	}
 },1000/60);
