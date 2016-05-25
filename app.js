@@ -44,6 +44,7 @@ var Map = function(mapId){
 		initPack: {players:[],mobs:[]},
 		removePack: {players:[],mobs:[]},
 		mobCount: 0
+		toDelete: false
 	}
 	self.addMob = function(mob){
 		Map.list[mob.id].mobList.push(mob);
@@ -212,7 +213,7 @@ Player.onConnect = function(socket){
 }
 
 Player.onDisconnect = function(socket){
-	delete Map.list[socket.id];
+	Map.list[socket.id].toDelete = true;
 }
 
 Map.update = function(map){
