@@ -327,4 +327,4 @@ setInterval(function(){
 			Map.list[i].addMob(new Mob(i, 1));
 		}
 	}
-},1000/6000);
+},1000/60);
