@@ -44,7 +44,6 @@
 	var loader = function(i){
 		var image = new Image();
 		image.src = images[i];
-		console.log(image.src);
 		image.addEventListener('load',function(){
 			Sprite.list[image.src.substring(image.src.indexOf("img")+4,image.src.length-4)] = new Sprite(image, 32, 32, 10);
 			if(i < images.length - 1) loader(i+1);

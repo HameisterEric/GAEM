@@ -1,6 +1,6 @@
 var mongojs = require("mongojs");
-var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
-//var db = mongojs('localhost:27017/myGame', ['account','progress']);
+//var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
+var db = mongojs('localhost:27017/myGame', ['account','progress']);
 var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
@@ -20,6 +20,7 @@ var Entity = function(playerId){
 		x: 250,
 		y: 250,
 		xSpeed: 0,
+		
 		ySpeed: 0,
 		id: playerId,
 		attacking: false,
@@ -288,21 +289,20 @@ var Player = function(id, playerType){
       self.level++;
 		}
 	}
-	playerlist[socketlist[self.id]] = self;
 	return self;
 }
 Player.onConnect = function(socket, playerType, mapId){
 	if(!mapId) mapId = Math.random();
 	var map = Map.list[mapId] || new Map(mapId);
 	var player = new Player(socket.id, playerType);
-	console.log(map.id);
+	playerlist[socketlist[socket.id].id] = player;
 	map.addPlayer(player,map.id);
 }
 
 Player.onDisconnect = function(socket){
-	if(playerlist[socket]){
-		Map.list[playerlist[socket].mapId].removePack.players.push({number: playerlist[socket].arrayPosition});
-		delete Map.list[playerlist[socket].mapId].playerList[playerlist[socket].arrayPosition];
+	if(playerlist[socket.id]){
+		Map.list[playerlist[socket.id].mapId].removePack.players.push({number: playerlist[socket.id].arrayPosition});
+		delete Map.list[playerlist[socket.id].mapId].playerList[playerlist[socket.id].arrayPosition];
 	//if(Map.list[playerlist[socket].mapId].playerList.length === 0) delete Map.list[playerlist[socket].mapId];
 	}
 }
