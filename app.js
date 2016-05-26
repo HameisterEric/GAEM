@@ -51,34 +51,34 @@ var Map = function(mapId){
 	self.addMob = function(mob){
 		Map.list[mob.id].mobList.push(mob);
 	}	
-	self.addPlayer = function(player){
-		socketlist[player.id].emit('init', self.onStart());
-		player.updateMapId(self.id);
-		self.playerList.push(player);
-		self.initPack.players.push({
+	self.addPlayer = function(player, mapId){
+		player.updateMapId(mapId);
+		socketlist[player.id].emit('init', Map.list[player.mapId].onStart(mapId));
+		Map.list[player.mapId].playerList.push(player);
+		Map.list[player.mapId].initPack.players.push({
 			being: player.being,
 			number: player.arrayPosition,
 			x: player.x,
 			y: player.y
 		});
 	}
-	self.onStart = function(){
+	self.onStart = function(mapId){
 		var playerPack = []
-		for(var i in self.playerList){
+		for(var i in Map.list[mapId].playerList){
 			playerPack.push({
-				being: self.playerList[i].being,
-				number: self.playerList[i].arrayPosition,
-				x: self.playerList[i].x,
-				y: self.playerList[i].y
+				being: Map.list[mapId].playerList[i].being,
+				number: Map.list[mapId].playerList[i].arrayPosition,
+				x: Map.list[mapId].playerList[i].x,
+				y: Map.list[mapId].playerList[i].y
 			});
 		}
 		var mobPack = []
-		for(var i in self.mobList){
+		for(var i in Map.list[mapId].mobList){
 			mobPack.push({
-				being: self.mobList[i].being,
-				number: self.mobList[i].arrayPosition,
-				x: self.mobList[i].x,
-				y: self.mobList[i].y
+				being: Map.list[mapId].mobList[i].being,
+				number: Map.list[mapId].mobList[i].arrayPosition,
+				x: Map.list[mapId].mobList[i].x,
+				y: Map.list[mapId].mobList[i].y
 			});
 		}
 		return {players: playerPack, mobs: mobPack}
@@ -119,21 +119,7 @@ var Mob = function(id, difficulty){
 			self.giveXP();
 			return false;
 		} else {
-			if(self.attacking){
-				self.xSpeed = 0;
-				self.ySpeed = 0;
-				self.attackingTicks++;
-				if(self.attackingTicks >= 60){
-					Map.list[self.id].changeRowPack.mobs.push({
-						number: self.arrayPosition,
-						row: 0
-					});
-					self.attack(self.target);
-					self.attacking = false;
-					self.attackingTicks = 0;
-				}
-			}
-			else if (!self.target){
+			if (!self.target){
 				var closest = 9999999999;
 				var position = -1;
 				for(var i in Map.list[self.id].playerList){
@@ -166,6 +152,20 @@ var Mob = function(id, difficulty){
 					var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
 					self.xSpeed = Math.cos(angle)*self.speed;
 					self.ySpeed = Math.sin(angle)*self.speed;
+				}
+			}
+			if(self.attacking){
+				self.xSpeed = 0;
+				self.ySpeed = 0;
+				self.attackingTicks++;
+				if(self.attackingTicks >= 60){
+					Map.list[self.id].changeRowPack.mobs.push({
+						number: self.arrayPosition,
+						row: 0
+					});
+					self.attack(self.target);
+					self.attacking = false;
+					self.attackingTicks = 0;
 				}
 			}
 			return true;
@@ -222,29 +222,7 @@ var Player = function(id, playerType){
 		super_update();
 	}
 	self.tick = function(){
-		if(self.attacking){
-			self.xSpeed = 0;
-			self.ySpeed = 0;
-			self.attackingTicks++;
-			if(!Map.list[self.mapId].mobList[self.target.arrayPosition]){
-			self.target = undefined;
-			self.attacking = false;
-			self.attackingTicks = 0;
-				Map.list[self.mapId].changeRowPack.players.push({
-					number: self.arrayPosition,
-					row: 0,
-				});
-			}
-			if(self.attackingTicks >= 60){
-				if(self.being === "Shaman") {
-					for(var i in Map.list[self.mapId].mobList) 
-						self.attack(Map.list[self.mapId].mobList[i]);
-				} else self.attack(self.target);
-				self.attacking = false;
-				self.attackingTicks = 0;
-			}
-		}
-		else if (!self.target){
+		if (!self.target){
 			var closest = 9999999999;
 			var position = -1;
 			for(var i in Map.list[self.mapId].mobList){
@@ -277,6 +255,28 @@ var Player = function(id, playerType){
 			});
 			}
 		}
+		if(self.attacking){
+			self.xSpeed = 0;
+			self.ySpeed = 0;
+			self.attackingTicks++;
+			if(!Map.list[self.mapId].mobList[self.target.arrayPosition]){
+			self.target = undefined;
+			self.attacking = false;
+			self.attackingTicks = 0;
+				Map.list[self.mapId].changeRowPack.players.push({
+					number: self.arrayPosition,
+					row: 0,
+				});
+			}
+			if(self.attackingTicks >= 60){
+				if(self.being === "Shaman") {
+					for(var i in Map.list[self.mapId].mobList) 
+						self.attack(Map.list[self.mapId].mobList[i]);
+				} else self.attack(self.target);
+				self.attacking = false;
+				self.attackingTicks = 0;
+			}
+		}
 	}
 	self.attack = function(target){
 		self.levelUp();
@@ -295,7 +295,8 @@ Player.onConnect = function(socket, playerType, mapId){
 	if(!mapId) mapId = Math.random();
 	var map = Map.list[mapId] || new Map(mapId);
 	var player = new Player(socket.id, playerType);
-	map.addPlayer(player);
+	console.log(map.id);
+	map.addPlayer(player,map.id);
 }
 
 Player.onDisconnect = function(socket){
@@ -390,8 +391,8 @@ io.sockets.on('connection', function(socket){
 		});
 	});
 	socket.on('disconnect',function(){
-		delete socketlist[socket.id];
 		Player.onDisconnect(socket);
+		//delete socketlist[socket.id];
 	});
 	
 	socket.on('sendText',function(data){
