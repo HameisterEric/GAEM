@@ -129,7 +129,7 @@ var Mob = function(id, difficulty){
 						row: 0
 					});
 					self.attack(self.target);
-					self.attacking = false;
+					if(self.target.health <= 0) self.attacking = false;
 					self.attackingTicks = 0;
 				}
 			}
@@ -240,7 +240,7 @@ var Player = function(id, playerType){
 					for(var i in Map.list[self.mapId].mobList) 
 						self.attack(Map.list[self.mapId].mobList[i]);
 				} else self.attack(self.target);
-				self.attacking = false;
+				if(self.target.health <= 0) self.attacking = false;
 				self.attackingTicks = 0;
 			}
 		}
