@@ -43,15 +43,45 @@ var Map = function(mapId){
 		playerList: [],
 		initPack: {players:[],mobs:[]},
 		removePack: {players:[],mobs:[]},
+		changeRowPack: {players:[], mobs:[]},
 		mobCount: 0,
+		playerCount: 0,
 		toDelete: false
 	}
 	self.addMob = function(mob){
 		Map.list[mob.id].mobList.push(mob);
 	}	
 	self.addPlayer = function(player){
+		socketlist[player.id].emit('init', self.onStart());
 		player.updateMapId(self.id);
 		self.playerList.push(player);
+		self.initPack.players.push({
+			being: player.being,
+			number: player.arrayPosition,
+			x: player.x,
+			y: player.y
+		});
+	}
+	self.onStart = function(){
+		var playerPack = []
+		for(var i in self.playerList){
+			playerPack.push({
+				being: self.playerList[i].being,
+				number: self.playerList[i].arrayPosition,
+				x: self.playerList[i].x,
+				y: self.playerList[i].y
+			});
+		}
+		var mobPack = []
+		for(var i in self.mobList){
+			mobPack.push({
+				being: self.mobList[i].being,
+				number: self.mobList[i].arrayPosition,
+				x: self.mobList[i].x,
+				y: self.mobList[i].y
+			});
+		}
+		return {players: playerPack, mobs: mobPack}
 	}
 	Map.list[self.id] = self;
 	return self;
@@ -61,7 +91,7 @@ var Mob = function(id, difficulty){
 	var self = Entity(id);
 	self.x = Math.random()*500;
 	self.y = Math.random()*500;
-	self.range = 20;
+	self.range = 60;
 	self.being = "mob" + difficulty;
 	self.speed = 2;
 	self.damage = 10;
@@ -71,6 +101,7 @@ var Mob = function(id, difficulty){
 	Map.list[self.id].mobCount++;
 	var super_update = self.update;
 	Map.list[self.id].initPack.mobs.push({
+		being: self.being,
 		number: self.arrayPosition,
 		x: self.x,
 		y: self.y
@@ -92,13 +123,17 @@ var Mob = function(id, difficulty){
 				self.xSpeed = 0;
 				self.ySpeed = 0;
 				self.attackingTicks++;
-				if(self.attackingTicks >= 80){
+				if(self.attackingTicks >= 60){
+					Map.list[self.id].changeRowPack.mobs.push({
+						number: self.arrayPosition,
+						row: 0
+					});
 					self.attack(self.target);
 					self.attacking = false;
 					self.attackingTicks = 0;
 				}
 			}
-			else{
+			else if (!self.target){
 				var closest = 9999999999;
 				var position = -1;
 				for(var i in Map.list[self.id].playerList){
@@ -111,12 +146,26 @@ var Mob = function(id, difficulty){
 				}
 				if(position > -1){
 					self.target = Map.list[self.id].playerList[position];
-					if(closest<self.range*self.range) self.attacking = true;
-					else{
-						var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
-						self.xSpeed = Math.cos(angle)*self.speed;
-						self.ySpeed = Math.sin(angle)*self.speed;
-					}
+					Map.list[self.id].changeRowPack.mobs.push({
+						number: self.arrayPosition,
+						row: 2,
+						reverse:self.target.x > self.x ? 1:-1
+					});
+				}
+			}
+			if(!self.attacking){
+				if(Math.pow(self.target.x-self.x,2) +Math.pow(self.target.y-self.y,2)<self.range*self.range){
+					self.attacking = true;
+					Map.list[self.id].changeRowPack.mobs.push({
+						number: self.arrayPosition,
+						row: 3,
+						reverse: self.target.x > self.x ? 1:-1
+					});
+				}
+				else{
+					var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
+					self.xSpeed = Math.cos(angle)*self.speed;
+					self.ySpeed = Math.sin(angle)*self.speed;
 				}
 			}
 			return true;
@@ -134,23 +183,39 @@ var Mob = function(id, difficulty){
 	return self;
 }
 
-var Player = function(id){
+var Player = function(id, playerType){
 	var self = Entity(id);
-	self.speed = 2;
-	self.being = "player"
-	self.health = 1000;
-	self.damage = 25;
-	self.range = 30;
+	self.being = playerType;
+	if(self.being === "Knight"){
+		self.speed = 2;
+		self.health = 1000;
+		self.damage = 25;
+		self.range = 60;
+	} else if(self.being === "Shaman"){
+		self.speed = 1;
+		self.health = 500;
+		self.damage = 10;
+		self.range = 9999999999;
+	} else if(self.being === "Thief"){
+		self.speed = 2;
+		self.health = 750;
+		self.damage = 20;
+		self.range = 60;
+	} else {
+		self.speed = 2;
+		self.health = 750;
+		self.damage = 20;
+		self.range = 300;
+	}
 	self.arrayPosition = 0;
 	self.level = 0;
 	self.xp = 0;
 	self.mapId = id;
 	var super_update = self.update;	
 	self.updateMapId = function(newId){
-		if(Map.list[self.mapId].playerList.length === 1)
-			delete Map.list[self.mapId];
 		self.mapId = newId;
-		self.arrayPosition = Map.list[self.mapId].playerList.length;
+		self.arrayPosition = Map.list[self.mapId].playerCount;
+		Map.list[self.mapId].playerCount++;
 	}
 	self.update = function(){
 		self.tick();
@@ -161,17 +226,29 @@ var Player = function(id){
 			self.xSpeed = 0;
 			self.ySpeed = 0;
 			self.attackingTicks++;
-			if(self.attackingTicks >= 80){
-				self.attack(self.target);
+			if(!Map.list[self.mapId].mobList[self.target.arrayPosition]){
+			self.target = undefined;
+			self.attacking = false;
+			self.attackingTicks = 0;
+				Map.list[self.mapId].changeRowPack.players.push({
+					number: self.arrayPosition,
+					row: 0,
+				});
+			}
+			if(self.attackingTicks >= 60){
+				if(self.being === "Shaman") {
+					for(var i in Map.list[self.mapId].mobList) 
+						self.attack(Map.list[self.mapId].mobList[i]);
+				} else self.attack(self.target);
 				self.attacking = false;
 				self.attackingTicks = 0;
 			}
 		}
-		else{
+		else if (!self.target){
 			var closest = 9999999999;
 			var position = -1;
-			for(var i in Map.list[self.id].mobList){
-				var mob = Map.list[self.id].mobList[i];
+			for(var i in Map.list[self.mapId].mobList){
+				var mob = Map.list[self.mapId].mobList[i];
 				var distance = Math.pow(mob.x-self.x,2) +Math.pow(mob.y-self.y,2);
 				if(distance < closest){
 					closest = distance;
@@ -179,13 +256,25 @@ var Player = function(id){
 				}
 			}
 			if(position > -1){
-				self.target = Map.list[self.id].mobList[position]
-				if(closest<self.range*self.range) self.attacking = true;
-				else{;
-					var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
-					self.xSpeed = Math.cos(angle)*self.speed;
-					self.ySpeed = Math.sin(angle)*self.speed;
-				}
+				self.target = Map.list[self.mapId].mobList[position]
+				Map.list[self.mapId].changeRowPack.players.push({
+					number: self.arrayPosition,
+					row: 2,
+					reverse: self.target.x > self.x ? 1:-1
+				});
+			}
+		}
+		if(self.target && !self.attacking){
+			var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
+			self.xSpeed = Math.cos(angle)*self.speed;
+			self.ySpeed = Math.sin(angle)*self.speed;
+			if(Math.pow(self.target.x-self.x,2) +Math.pow(self.target.y-self.y,2)<self.range*self.range){
+				self.attacking = true;
+				Map.list[self.mapId].changeRowPack.players.push({
+					number: self.arrayPosition,
+					row: 3,
+					reverse: self.target.x > self.x ? 1:-1
+			});
 			}
 		}
 	}
@@ -199,21 +288,22 @@ var Player = function(id){
       self.level++;
 		}
 	}
-	Map.list[self.mapId].initPack.players.push({
-		id: self.arrayPosition,
-		x: self.x,
-		y: self.y
-	});
+	playerlist[socketlist[self.id]] = self;
 	return self;
 }
-Player.onConnect = function(socket){
-	var map = new Map(socket.id);
-	var player = new Player(socket.id);
+Player.onConnect = function(socket, playerType, mapId){
+	if(!mapId) mapId = Math.random();
+	var map = Map.list[mapId] || new Map(mapId);
+	var player = new Player(socket.id, playerType);
 	map.addPlayer(player);
 }
 
 Player.onDisconnect = function(socket){
-	Map.list[socket.id].toDelete = true;
+	if(playerlist[socket]){
+		Map.list[playerlist[socket].mapId].removePack.players.push({number: playerlist[socket].arrayPosition});
+		delete Map.list[playerlist[socket].mapId].playerList[playerlist[socket].arrayPosition];
+	//if(Map.list[playerlist[socket].mapId].playerList.length === 0) delete Map.list[playerlist[socket].mapId];
+	}
 }
 
 Map.update = function(map){
@@ -221,18 +311,20 @@ Map.update = function(map){
 	for(var i in Map.list[map].mobList){
 		mob = Map.list[map].mobList[i];
 		if(mob.update()){
-		mobPack.push({
-			number: mob.arrayPosition,
-			being: mob.being,
-			x: mob.x,
-			y: mob.y
-		});}
+			mobPack.push({
+				number: mob.arrayPosition,
+				being: mob.being,
+				x: mob.x,
+				y: mob.y
+			});
+		}
 	}
 	var playerPack = [];
 	for(var i in Map.list[map].playerList){
 		player = Map.list[map].playerList[i];
 		player.update();
 		playerPack.push({
+			number: player.arrayPosition,
 			being: player.being,
 			x: player.x,
 			y: player.y
@@ -270,7 +362,6 @@ var addUser = function(data,cb){
 }
 
 var io = require('socket.io')(serv,{});
-
 io.sockets.on('connection', function(socket){
 	socket.id = Math.random();
 	socketlist[socket.id] = socket;
@@ -285,7 +376,7 @@ io.sockets.on('connection', function(socket){
 		});
 	});
 	socket.on('loaded',function(data){
-		Player.onConnect(socket);
+		Player.onConnect(socket, data.playerType, data.map);
 	});
 	socket.on('signUp',function(data){
 		isUsernameTaken(data, function(res){
@@ -316,17 +407,21 @@ setInterval(function(){
 		var pack = Map.update(i);
 		for(var j in Map.list[i].playerList){
 			var socket = socketlist[Map.list[i].playerList[j].id];
-			socket.emit('remove',Map.list[i].removePack);
-			socket.emit('init',Map.list[i].initPack);
-			socket.emit('update',pack);
+			if(socket){
+				socket.emit('remove',Map.list[i].removePack);
+				socket.emit('init',Map.list[i].initPack);
+				socket.emit('changeRow',Map.list[i].changeRowPack);
+				socket.emit('update',pack);
+			}
 		}
 		Map.list[i].initPack.players = [];
 		Map.list[i].initPack.mobs = [];
 		Map.list[i].removePack.players = [];
 		Map.list[i].removePack.mobs = [];
+		Map.list[i].changeRowPack.players = [];
+		Map.list[i].changeRowPack.mobs = [];
 		if(Math.random()<.005){ 
 			Map.list[i].addMob(new Mob(i, 1));
 		}
-		if(Map.list[i].toDelete) delete Map.list[i];
 	}
 },1000/60);

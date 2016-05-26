@@ -1,7 +1,14 @@
-<title> Test </title>
+<title> GAEM </title>
 <div id ="signDiv">
 	Username: <input id = "signDiv-username" type = "text"></input><br>
-	Password: <input id = "signDiv-password" type = "password"></input>
+	Password: <input id = "signDiv-password" type = "password"></input><br>
+	Map(randomly assigned if empty): <input id = "signDiv-map" type = "text" onkeypress='return event.charCode >= 48 && event.charCode <= 57'></input>
+	<form id = "playerType">
+		<input type="radio" name="playerTypes" value="Knight"> Knight<br>
+		<input type="radio" name="playerTypes" value="Wizard"> Wizard<br>
+		<input type="radio" name="playerTypes" value="Thief"> Thief<br>
+		<input type="radio" name="playerTypes" value="Shaman"> Shaman<br>
+	</form>
 	<button id = "signDiv-signIn">Sign In</button>
 	<button id = "signDiv-signUp">Sign Up</button>
 </div>
@@ -24,8 +31,29 @@
 	var signDivSignIn = document.getElementById('signDiv-signIn');
 	var signDivSignUp = document.getElementById('signDiv-signUp');
 	var signDivPassword = document.getElementById('signDiv-password');
+	var signDivMap = document.getElementById('signDiv-map');
+	var playerType = document.getElementById('playerType');
+	var images = [
+	"img/CharacterKnight.png",
+	"img/CharacterWizard.png",
+	"img/CharacterThief.png",
+	"img/CharacterShaman.png",
+	"img/mob1.png"
+	];
+	Sprite.list = {};
+	var loader = function(i){
+		var image = new Image();
+		image.src = images[i];
+		console.log(image.src);
+		image.addEventListener('load',function(){
+			Sprite.list[image.src.substring(image.src.indexOf("img")+4,image.src.length-4)] = new Sprite(image, 32, 32, 10);
+			if(i < images.length - 1) loader(i+1);
+		});
+	}
+	loader(0);
 	signDivSignIn.onclick = function(){
-		socket.emit('signIn',{username:signDivUsername.value,password:signDivPassword.value});
+		if(playerType.elements["playerTypes"].value)
+		socket.emit('signIn',{username: signDivUsername.value, password: signDivPassword.value});
 	}
 	signDivSignUp.onclick = function(){
 		socket.emit('signUp',{username:signDivUsername.value,password:signDivPassword.value});
@@ -34,11 +62,11 @@
 		if(data.success){
 			signDiv.style.display = 'none';
 			gameDiv.style.display = 'inline-block';
-			var hero = new Image()
-			//hero.src = "client/img/Character_Knight";
-			//hero.addEventListener('load', function(){
-				socket.emit('loaded',{success:true});
-			//});
+			var hero = new Image();
+			hero.src = "img/CharacterKnight.png";
+			hero.addEventListener('load', function(){
+				socket.emit('loaded',{playerType: playerType.elements["playerTypes"].value, map: signDivMap.value});
+			});
 		}
 		else
 			alert("Sign in failed");
@@ -73,10 +101,12 @@
 	
 	var Player = function(pack){
 		var self = {};
-		self.id = pack.id;
+		self.number = pack.number;
 		self.x = pack.x;
 		self.y = pack.y;
-		Player.list[self.id] = self;
+		self.sprite = Sprite.list["Character"+ pack.being];
+		self.sprite = new Sprite(self.sprite.image,self.sprite.width,self.sprite.height,self.sprite.rowLength);
+		Player.list[self.number] = self;
 		return self;
 	}
 	Player.list = {};
@@ -85,6 +115,8 @@
 		self.number = pack.number;
 		self.x = pack.x;
 		self.y = pack.y;
+		self.sprite = Sprite.list[pack.being];
+		self.sprite = new Sprite(self.sprite.image,self.sprite.width,self.sprite.height,self.sprite.rowLength);
 		Mob.list[self.number] = self;
 		return self;
 	}
@@ -99,8 +131,8 @@
 	});
 	socket.on('update',function(data){
 		for(var i in data.players){
-			Player.list[i].x = data.players[i].x;
-			Player.list[i].y = data.players[i].y;
+			Player.list[data.players[i].number].x = data.players[i].x;
+			Player.list[data.players[i].number].y = data.players[i].y;
  		}
 		for(var i in data.mobs){
 			Mob.list[data.mobs[i].number].x = data.mobs[i].x;
@@ -115,13 +147,49 @@
 			delete Mob.list[data.mobs[i].number];
  		}
 	});
+	socket.on('changeRow',function(data){
+		for(var i in data.players){
+			Player.list[data.players[i].number].sprite.index = 0;
+			Player.list[data.players[i].number].sprite.framesOn = 0;
+			Player.list[data.players[i].number].sprite.row = data.players[i].row;
+			if(data.players[i].reverse) Player.list[data.players[i].number].sprite.reverse = data.players[i].reverse;
+		}
+		for(var i in data.mobs){
+			Mob.list[data.mobs[i].number].sprite.index = 0;
+			Mob.list[data.mobs[i].number].sprite.framesOn = 0;
+			Mob.list[data.mobs[i].number].sprite.row = data.mobs[i].row;
+			if(data.mobs[i].reverse) Mob.list[data.mobs[i].number].sprite.reverse = data.mobs[i].reverse;
+		}
+	});
+function Sprite(image, width, height, rowLength){
+	this.image = image;
+	this.width = width;
+	this.height = height;
+	this.index = 0;
+	this.row = 0;
+	this.rowLength = rowLength;
+	this.framesOn = 0;
+	this.reverse = 1;
+	this.draw = function(xPosition, yPosition){
+		ctx.save();
+		if(this.reverse === -1) ctx.scale(-1,1);
+		ctx.drawImage(this.image,this.width*this.index,this.height*this.row + 1,this.width,this.height-1,this.reverse*(xPosition-this.width*3/2),yPosition-this.height*3/2,this.reverse*this.width*3,this.height*3);
+		ctx.restore();
+		if (this.framesOn >= 60/rowLength){
+			this.index++;
+			this.framesOn = 0;
+		}
+		this.framesOn++;
+		if(this.index>this.rowLength-1) this.index = 0;
+	}
+}
 	setInterval(function(){
 		ctx.clearRect(0,0,500,500);
 		for(var i in Player.list){
-			ctx.fillText('P',Player.list[i].x, Player.list[i].y);
+			Player.list[i].sprite.draw(Player.list[i].x,Player.list[i].y);
 		}
 		for(var i in Mob.list){
-			ctx.fillRect(Mob.list[i].x,Mob.list[i].y,10,10);
+			Mob.list[i].sprite.draw(Mob.list[i].x,Mob.list[i].y);
 		}
 	},1000/60);
 	</script>
