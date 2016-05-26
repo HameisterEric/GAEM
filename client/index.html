@@ -174,7 +174,7 @@ function Sprite(image, width, height, rowLength){
 	this.draw = function(xPosition, yPosition){
 		ctx.save();
 		if(this.reverse === -1) ctx.scale(-1,1);
-		ctx.drawImage(this.image,this.width*this.index,this.height*this.row,this.width,this.height,this.reverse*(xPosition-this.width*3/2),yPosition-this.height*3/2,this.reverse*this.width*3,this.height*3);
+		ctx.drawImage(this.image,this.width*this.index,this.height*this.row,this.width,this.height,this.reverse*(xPosition-this.width*3/2),yPosition+this.height*3/2,this.reverse*this.width*3,this.height*3);
 		ctx.restore();
 		if (this.framesOn >= 60/rowLength){
 			this.index++;
