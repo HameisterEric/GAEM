@@ -301,9 +301,11 @@ Player.onConnect = function(socket, playerType, mapId){
 
 Player.onDisconnect = function(socket){
 	if(playerlist[socket.id]){
+		var toDelete = false;
+		if(Map.list[playerlist[socket.id].mapId].playerList.length === 1) toDelete = true;
 		Map.list[playerlist[socket.id].mapId].removePack.players.push({number: playerlist[socket.id].arrayPosition});
 		delete Map.list[playerlist[socket.id].mapId].playerList[playerlist[socket.id].arrayPosition];
-	//if(Map.list[playerlist[socket].mapId].playerList.length === 0) delete Map.list[playerlist[socket].mapId];
+		if(toDelete) delete Map.list[playerlist[socket.id].mapId];
 	}
 }
 
@@ -392,7 +394,7 @@ io.sockets.on('connection', function(socket){
 	});
 	socket.on('disconnect',function(){
 		Player.onDisconnect(socket);
-		//delete socketlist[socket.id];
+		delete socketlist[socket.id];
 	});
 	
 	socket.on('sendText',function(data){
