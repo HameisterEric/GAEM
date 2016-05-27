@@ -34,18 +34,26 @@
 	var signDivMap = document.getElementById('signDiv-map');
 	var playerType = document.getElementById('playerType');
 	var images = [
-	"img/CharacterKnight.png",
-	"img/CharacterWizard.png",
-	"img/CharacterThief.png",
-	"img/CharacterShaman.png",
-	"img/mob1.png"
+	{image: "img/CharacterKnight.png", size: 32, inverse: 1},
+	{image: "img/CharacterWizard.png", size: 32, inverse: 1},
+	{image: "img/CharacterThief.png", size: 32, inverse: 1},
+	{image: "img/CharacterShaman.png", size: 32, inverse: 1},
+	{image: "img/mob9.png", size: 32, inverse: 1},
+	{image: "img/mob8.png", size: 48, inverse: -1},
+	{image: "img/mob7.png", size: 32, inverse: 1},
+	{image: "img/mob6.png", size: 32, inverse: 1},
+	{image: "img/mob5.png", size: 32, inverse: 1},
+	{image: "img/mob4.png", size: 32, inverse: 1},
+	{image: "img/mob3.png", size: 32, inverse: 1},
+	{image: "img/mob2.png", size: 32, inverse: -1},
+	{image: "img/mob1.png", size: 32, inverse: -1}
 	];
 	Sprite.list = {};
 	var loader = function(i){
 		var image = new Image();
-		image.src = images[i];
+		image.src = images[i].image;
 		image.addEventListener('load',function(){
-			Sprite.list[image.src.substring(image.src.indexOf("img")+4,image.src.length-4)] = new Sprite(image, 32, 32, 10);
+			Sprite.list[image.src.substring(image.src.indexOf("img")+4,image.src.length-4)] = new Sprite(image, images[i].size, images[i].size, 10, images[i].inverse);
 			if(i < images.length - 1) loader(i+1);
 		});
 	}
@@ -61,9 +69,9 @@
 		if(data.success){
 			signDiv.style.display = 'none';
 			gameDiv.style.display = 'inline-block';
-			var hero = new Image();
-			hero.src = "img/CharacterKnight.png";
-			hero.addEventListener('load', function(){
+			var last = new Image();
+			last.src = "img/mob1.png";
+			last.addEventListener('load', function(){
 				socket.emit('loaded',{playerType: playerType.elements["playerTypes"].value, map: signDivMap.value});
 			});
 		}
@@ -105,7 +113,7 @@
 		self.x = pack.x;
 		self.y = pack.y;
 		self.sprite = Sprite.list["Character"+ pack.being];
-		self.sprite = new Sprite(self.sprite.image,self.sprite.width,self.sprite.height,self.sprite.rowLength);
+		self.sprite = new Sprite(self.sprite.image,self.sprite.width,self.sprite.height,self.sprite.rowLength, self.sprite.inverse);
 		Player.list[self.number] = self;
 		return self;
 	}
@@ -116,7 +124,7 @@
 		self.x = pack.x;
 		self.y = pack.y;
 		self.sprite = Sprite.list[pack.being];
-		self.sprite = new Sprite(self.sprite.image,self.sprite.width,self.sprite.height,self.sprite.rowLength);
+		self.sprite = new Sprite(self.sprite.image,self.sprite.width,self.sprite.height,self.sprite.rowLength,self.sprite.inverse);
 		Mob.list[self.number] = self;
 		return self;
 	}
@@ -161,7 +169,7 @@
 			if(data.mobs[i].reverse) Mob.list[data.mobs[i].number].sprite.reverse = data.mobs[i].reverse;
 		}
 	});
-function Sprite(image, width, height, rowLength){
+function Sprite(image, width, height, rowLength, inverse){
 	this.image = image;
 	this.width = width;
 	this.height = height;
@@ -169,11 +177,13 @@ function Sprite(image, width, height, rowLength){
 	this.row = 0;
 	this.rowLength = rowLength;
 	this.framesOn = 0;
+	this.inverse = inverse;
+	console.log(inverse);
 	this.reverse = 1;
 	this.draw = function(xPosition, yPosition){
 		ctx.save();
-		if(this.reverse === -1) ctx.scale(-1,1);
-		ctx.drawImage(this.image,this.width*this.index,this.height*this.row,this.width,this.height,this.reverse*(xPosition-this.width*3/2),yPosition+this.height,this.reverse*this.width*3,this.height*3);
+		if(this.reverse*this.inverse === -1) ctx.scale(-1,1);
+		ctx.drawImage(this.image,this.width*this.index,this.height*this.row,this.width,this.height,this.reverse*this.inverse*(xPosition-this.width*3/2),yPosition-this.height*3/2,this.reverse*this.inverse*this.width*3,this.height*3);
 		ctx.restore();
 		if (this.framesOn >= 60/rowLength){
 			this.index++;

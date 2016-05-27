@@ -125,7 +125,7 @@ var Mob = function(id, difficulty){
 				var position = -1;
 				for(var i in Map.list[self.id].playerList){
 					var player = Map.list[self.id].playerList[i];
-					var distance = Math.pow(player.x-self.x,2) +Math.pow(player.y-self.y,2);
+					var distance = Math.pow(player.x-self.x,2) +Math.pow(player.y - 40 - self.y,2);
 					if(distance < closest){
 						closest = distance;
 						position = i;
@@ -141,7 +141,7 @@ var Mob = function(id, difficulty){
 				}
 			}
 			if(!self.attacking){
-				if(Math.pow(self.target.x-self.x,2) +Math.pow(self.target.y-self.y,2)<self.range*self.range){
+				if(Math.pow(self.target.x-self.x,2) +Math.pow(self.target.y -40-self.y,2)<self.range*self.range){
 					self.attacking = true;
 					Map.list[self.id].changeRowPack.mobs.push({
 						number: self.arrayPosition,
@@ -191,7 +191,7 @@ var Player = function(id, playerType){
 		self.speed = 2;
 		self.health = 1000;
 		self.damage = 25;
-		self.range = 60;
+		self.range = 75;
 	} else if(self.being === "Shaman"){
 		self.speed = 1;
 		self.health = 500;
@@ -201,7 +201,7 @@ var Player = function(id, playerType){
 		self.speed = 2;
 		self.health = 750;
 		self.damage = 20;
-		self.range = 60;
+		self.range = 65;
 	} else {
 		self.speed = 2;
 		self.health = 750;
@@ -424,7 +424,7 @@ setInterval(function(){
 		Map.list[i].changeRowPack.players = [];
 		Map.list[i].changeRowPack.mobs = [];
 		if(Math.random()<.005){ 
-			Map.list[i].addMob(new Mob(i, 1));
+			Map.list[i].addMob(new Mob(i, Math.floor(Math.random()*9 + 1)));
 		}
 	}
 },1000/60);
