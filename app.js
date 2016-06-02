@@ -1,6 +1,6 @@
 var mongojs = require("mongojs");
-//var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
-var db = mongojs('localhost:27017/myGame', ['account','progress']);
+var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
+//var db = mongojs('localhost:27017/myGame', ['account','progress']);
 var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
@@ -47,7 +47,8 @@ var Map = function(mapId){
 		changeRowPack: {players:[], mobs:[]},
 		mobCount: 0,
 		playerCount: 0,
-		toDelete: false
+		toDelete: false,
+		difficulty: 1
 	}
 	self.addMob = function(mob){
 		Map.list[mob.id].mobList.push(mob);
@@ -90,14 +91,14 @@ var Map = function(mapId){
 Map.list = {};
 var Mob = function(id, difficulty){
 	var self = Entity(id);
-	self.x = Math.random()*500;
-	self.y = Math.random()*500;
+	self.x = Math.random()*450;
+	self.y = Math.random()*450;
 	self.range = 60;
 	self.being = "mob" + difficulty;
 	self.speed = 2;
-	self.damage = 10;
-	self.health = 50;
-	self.xpGiven = 10;
+	self.damage = 10 * Math.pow(1.5, difficulty);
+	self.health = 50 * Math.pow(1.5, difficulty);
+	self.xpGiven = 10 * Math.pow(1.5, difficulty);
 	self.arrayPosition = Map.list[self.id].mobCount;
 	Map.list[self.id].mobCount++;
 	var super_update = self.update;
@@ -125,7 +126,7 @@ var Mob = function(id, difficulty){
 				var position = -1;
 				for(var i in Map.list[self.id].playerList){
 					var player = Map.list[self.id].playerList[i];
-					var distance = Math.pow(player.x-self.x,2) +Math.pow(player.y - 40 - self.y,2);
+					var distance = Math.pow(player.x-self.x,2) +Math.pow(player.y - 20 - self.y,2);
 					if(distance < closest){
 						closest = distance;
 						position = i;
@@ -141,7 +142,7 @@ var Mob = function(id, difficulty){
 				}
 			}
 			if(!self.attacking){
-				if(Math.pow(self.target.x-self.x,2) +Math.pow(self.target.y -40-self.y,2)<self.range*self.range){
+				if(Math.pow(self.target.x-self.x,2) +Math.pow(self.target.y -20-self.y,2)<self.range*self.range){
 					self.attacking = true;
 					Map.list[self.id].changeRowPack.mobs.push({
 						number: self.arrayPosition,
@@ -179,6 +180,10 @@ var Mob = function(id, difficulty){
 		var numberOfPlayers = Map.list[self.id].playerList.length;
 		for(var i in Map.list[self.id].playerList){
 			Map.list[self.id].playerList[i].xp += self.xpGiven/numberOfPlayers;
+		}
+		for (var i in Map.list[self.id].playerList){
+			if(Math.random() < 1/ 10 / numberOfPlayers)
+			socketlist[Map.list[self.id].playerList[i].id].emit('addItem', {being: self.being, item: 0});
 		}
 	}
 	return self;
@@ -287,6 +292,7 @@ var Player = function(id, playerType){
 	self.levelUp = function(){
 		while (600 * Math.pow(6/5, self.level) - 500 <= self.xp) {
       self.level++;
+			console.log("level " + self.level);
 		}
 	}
 	return self;
@@ -392,6 +398,9 @@ io.sockets.on('connection', function(socket){
 			}
 		});
 	});
+	socket.on('changeDifficulty', function(data){
+		Map.list[playerlist[socket.id].mapId].difficulty = data.difficulty;
+	});
 	socket.on('disconnect',function(){
 		Player.onDisconnect(socket);
 		delete socketlist[socket.id];
@@ -410,7 +419,7 @@ setInterval(function(){
 		var pack = Map.update(i);
 		for(var j in Map.list[i].playerList){
 			var socket = socketlist[Map.list[i].playerList[j].id];
-			if(socket){
+			if(socket && Map.list[i]){
 				socket.emit('remove',Map.list[i].removePack);
 				socket.emit('init',Map.list[i].initPack);
 				socket.emit('changeRow',Map.list[i].changeRowPack);
@@ -424,7 +433,7 @@ setInterval(function(){
 		Map.list[i].changeRowPack.players = [];
 		Map.list[i].changeRowPack.mobs = [];
 		if(Math.random()<.005){ 
-			Map.list[i].addMob(new Mob(i, Math.floor(Math.random()*9 + 1)));
+			Map.list[i].addMob(new Mob(i, Map.list[i].difficulty));
 		}
 	}
 },1000/60);
