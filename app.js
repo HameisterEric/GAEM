@@ -1,3 +1,4 @@
+'use strict';
 var mongojs = require("mongojs");
 //var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
 var db = mongojs('localhost:27017/myGame', ['account', 'progress']);
@@ -38,7 +39,7 @@ var Entity = function(playerId) {
   return self;
 }
 var Map = function(mapId) {
-  self = {
+  var self = {
     id: mapId,
     mobList: [],
     playerList: [],
@@ -341,7 +342,7 @@ Player.onDisconnect = function(socket) {
 Map.update = function(map) {
   var mobPack = [];
   for (var i in Map.list[map].mobList) {
-    mob = Map.list[map].mobList[i];
+    var mob = Map.list[map].mobList[i];
     if (mob.update()) {
       mobPack.push({
         number: mob.arrayPosition,
@@ -353,7 +354,7 @@ Map.update = function(map) {
   }
   var playerPack = [];
   for (var i in Map.list[map].playerList) {
-    player = Map.list[map].playerList[i];
+    var player = Map.list[map].playerList[i];
     player.update();
     playerPack.push({
       number: player.arrayPosition,

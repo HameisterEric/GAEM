@@ -1,3 +1,4 @@
+'use strict';
 var socket = io();
 var signDiv = document.getElementById('signDiv');
 var signDivUsername = document.getElementById('signDiv-username');
@@ -35,7 +36,7 @@ var itemImages = [
 ];
 Sprite.list = {};
 Item.list = {};
-itemHash = {
+var itemHash = {
   mob1: [
     { item: 13, image: 0 },
     { item: 0, image: 0 },
@@ -78,12 +79,12 @@ var imageLoader = function(i) {
 }
 var itemLoader = function() {
   for (var i in itemHash) {
-    for (j = 0; j < itemHash[i].length; j++) {
+    for (var j = 0; j < itemHash[i].length; j++) {
       var curr = itemHash[i][j];
       var currImage = new Image()
       currImage.src = itemImages[curr.image].image;
-      currSize = itemImages[curr.image].size;
-      currRowSize = itemImages[curr.image].rowLength;
+      var currSize = itemImages[curr.image].size;
+      var currRowSize = itemImages[curr.image].rowLength;
       Item.list[i + "item" + j] = new Item(currImage,curr.item % currRowSize * currSize,Math.floor(curr.item / currRowSize) * currSize,currSize,currSize);
     }
   }
@@ -256,8 +257,8 @@ function drawButtons() {
   }
 }
 function onClick(e) {
-  xPosition = e.pageX - gameDiv.offsetLeft;
-  yPosition = e.pageY - gameDiv.offsetTop;
+  var xPosition = e.pageX - gameDiv.offsetLeft;
+  var yPosition = e.pageY - gameDiv.offsetTop;
   for (var i = 0; i < menuButtons.length; i++) {
     menuButtons[i].isClicked(xPosition, yPosition);
   }
@@ -332,7 +333,7 @@ function Item(image, xImage, yImage, width, height) {
   }
 }
 function drawInventory() {
-  for (i = 0; i < inventory.length; i++) {
+  for (var i = 0; i < inventory.length; i++) {
     inventory[i].draw(500 + i % 6 * 32, Math.floor(i / 6) * 32 + 20);
   }
 }
@@ -345,7 +346,7 @@ function drawDooDads() {
   }
 }
 socket.on('addItem', function(data) {
-  rand = Math.floor(Math.random() * itemHash[data.being].length);
+  var rand = Math.floor(Math.random() * itemHash[data.being].length);
   //rand < 1 ? dooDads[data.being.substring(data.being.length - 1)]++:
   inventory.push(Item.list[data.being + "item" + rand]);
 });
