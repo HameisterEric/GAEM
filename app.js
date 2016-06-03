@@ -416,24 +416,25 @@ io.sockets.on('connection', function(socket){
 
 setInterval(function(){
 	for(var i in Map.list){
+		var map = Map.list[i];
 		var pack = Map.update(i);
-		for(var j in Map.list[i].playerList){
-			var socket = socketlist[Map.list[i].playerList[j].id];
-			if(socket && Map.list[i]){
-				socket.emit('remove',Map.list[i].removePack);
-				socket.emit('init',Map.list[i].initPack);
-				socket.emit('changeRow',Map.list[i].changeRowPack);
+		for(var j in map.playerList){
+			var socket = socketlist[map.playerList[j].id];
+			if(socket && map){
+				socket.emit('remove',map.removePack);
+				socket.emit('init',map.initPack);
+				socket.emit('changeRow',map.changeRowPack);
 				socket.emit('update',pack);
 			}
 		}
-		Map.list[i].initPack.players = [];
-		Map.list[i].initPack.mobs = [];
-		Map.list[i].removePack.players = [];
-		Map.list[i].removePack.mobs = [];
-		Map.list[i].changeRowPack.players = [];
-		Map.list[i].changeRowPack.mobs = [];
+		map.initPack.players = [];
+		map.initPack.mobs = [];
+		map.removePack.players = [];
+		map.removePack.mobs = [];
+		map.changeRowPack.players = [];
+		map.changeRowPack.mobs = [];
 		if(Math.random()<.005){ 
-			Map.list[i].addMob(new Mob(i, Map.list[i].difficulty));
+			map.addMob(new Mob(i, map.difficulty));
 		}
 	}
 },1000/60);
