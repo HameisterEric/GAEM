@@ -17,22 +17,22 @@ new Button(550,600,0,20,drawInventory),
 //new Button(600, 650, 0, 20, drawInventory)
 ];
 var images = [
-  { image: "img/CharacterKnight.png", size: 32, inverse: 1 },
-  { image: "img/CharacterWizard.png", size: 32, inverse: 1 },
-  { image: "img/CharacterThief.png", size: 32, inverse: 1 },
-  { image: "img/CharacterShaman.png", size: 32, inverse: 1 },
-  { image: "img/mob9.png", size: 32, inverse: 1 },
-  { image: "img/mob8.png", size: 48, inverse: -1 },
-  { image: "img/mob7.png", size: 32, inverse: 1 },
-  { image: "img/mob6.png", size: 32, inverse: 1 },
-  { image: "img/mob5.png", size: 32, inverse: 1 },
-  { image: "img/mob4.png", size: 32, inverse: 1 },
-  { image: "img/mob3.png", size: 32, inverse: 1 },
-  { image: "img/mob2.png", size: 32, inverse: -1 },
-  { image: "img/mob1.png", size: 32, inverse: -1 }
+  { image: 'img/CharacterKnight.png', size: 32, inverse: 1 },
+  { image: 'img/CharacterWizard.png', size: 32, inverse: 1 },
+  { image: 'img/CharacterThief.png', size: 32, inverse: 1 },
+  { image: 'img/CharacterShaman.png', size: 32, inverse: 1 },
+  { image: 'img/mob9.png', size: 32, inverse: 1 },
+  { image: 'img/mob8.png', size: 48, inverse: -1 },
+  { image: 'img/mob7.png', size: 32, inverse: 1 },
+  { image: 'img/mob6.png', size: 32, inverse: 1 },
+  { image: 'img/mob5.png', size: 32, inverse: 1 },
+  { image: 'img/mob4.png', size: 32, inverse: 1 },
+  { image: 'img/mob3.png', size: 32, inverse: 1 },
+  { image: 'img/mob2.png', size: 32, inverse: -1 },
+  { image: 'img/mob1.png', size: 32, inverse: -1 }
 ];
 var itemImages = [
-  { image: "img/items.png", size: 32, rowLength: 16, total: 150 }
+  { image: 'img/items.png', size: 32, rowLength: 16, total: 150 }
 ];
 Sprite.list = {};
 Item.list = {};
@@ -85,7 +85,7 @@ var itemLoader = function() {
       currImage.src = itemImages[curr.image].image;
       var currSize = itemImages[curr.image].size;
       var currRowSize = itemImages[curr.image].rowLength;
-      Item.list[i + "item" + j] = new Item(currImage,curr.item % currRowSize * currSize,Math.floor(curr.item / currRowSize) * currSize,currSize,currSize);
+      Item.list[i + 'item' + j] = new Item(currImage,curr.item % currRowSize * currSize,Math.floor(curr.item / currRowSize) * currSize,currSize,currSize);
     }
   }
 }
@@ -94,7 +94,7 @@ var spriteLoader = function(i) {
   image.src = images[i].image;
   console.log(image.src);
   image.addEventListener('load', function() {
-    Sprite.list[image.src.substring(image.src.indexOf("img") + 4, image.src.length - 4)] = new Sprite(image,images[i].size,images[i].size,10,images[i].inverse);
+    Sprite.list[image.src.substring(image.src.indexOf('img') + 4, image.src.length - 4)] = new Sprite(image,images[i].size,images[i].size,10,images[i].inverse);
     if (i < images.length - 1)
       spriteLoader(i + 1);
   });
@@ -104,7 +104,7 @@ itemLoader();
 spriteLoader(0);
 
 signDivSignIn.onclick = function() {
-  if (playerType.elements["playerTypes"].value)
+  if (playerType.elements['playerTypes'].value)
     socket.emit('signIn', {
       username: signDivUsername.value,
       password: signDivPassword.value
@@ -120,35 +120,35 @@ socket.on('signInResponse', function(data) {
   if (data.success) {
     signDiv.style.display = 'none';
     gameDiv.style.display = 'inline-block';
-    ctx.fillStyle = "rgba(206,255,255,1)";
+    ctx.fillStyle = 'rgba(206,255,255,1)';
     ctx.fillRect(500, 0, 200, 500);
     drawButtons();
     var last = new Image();
-    last.src = "img/mob1.png";
+    last.src = 'img/mob1.png';
     last.addEventListener('load', function() {
       socket.emit('loaded', {
-        playerType: playerType.elements["playerTypes"].value,
+        playerType: playerType.elements['playerTypes'].value,
         map: signDivMap.value
       });
     });
   }
   else
-    alert("Sign in failed");
+    alert('Sign in failed');
 });
 socket.on('signUpResponse', function(data) {
   if (data.success) {
-    alert("Sign up successful");
+    alert('Sign up successful');
   }
   else
-    alert("Sign up failed");
+    alert('Sign up failed');
 });
 
-var ctx = document.getElementById("ctx").getContext("2d");
+var ctx = document.getElementById('ctx').getContext('2d');
 ctx.imageSmoothingEnabled = false;
 var chatText = document.getElementById('chat-text');
 var chatInput = document.getElementById('chat-input');
 var chatForm = document.getElementById('chat-form');
-ctx.font = "30px Ariel";
+ctx.font = '30px Ariel';
 var positions;
 socket.on('newPosition', function(data) {
   positions = data;
@@ -169,7 +169,7 @@ var Player = function(pack) {
   self.number = pack.number;
   self.x = pack.x;
   self.y = pack.y;
-  self.sprite = Sprite.list["Character" + pack.being];
+  self.sprite = Sprite.list['Character' + pack.being];
   self.sprite = new Sprite(self.sprite.image,self.sprite.width,self.sprite.height,self.sprite.rowLength,self.sprite.inverse);
   Player.list[self.number] = self;
   return self;
@@ -237,14 +237,14 @@ function Button(xStart, xEnd, yStart, yEnd, funct) {
   this.isClicked = function(xPosition, yPosition) {
     if (xPosition > this.xStart && xPosition < this.xEnd && yPosition > this.yStart && yPosition < this.yEnd) {
       innerButtons = [];
-      ctx.fillStyle = "rgba(206,255,255,1)";
+      ctx.fillStyle = 'rgba(206,255,255,1)';
       ctx.fillRect(500, 0, 200, 500);
       this.funct();
       drawButtons();
     }
   }
   this.draw = function() {
-    ctx.fillStyle = "rgba(0,0,0,1)";
+    ctx.fillStyle = 'rgba(0,0,0,1)';
     ctx.fillRect(this.xStart, this.yStart, this.xEnd - this.xStart, this.yEnd - this.yStart);
   }
 }
@@ -348,7 +348,7 @@ function drawDooDads() {
 socket.on('addItem', function(data) {
   var rand = Math.floor(Math.random() * itemHash[data.being].length);
   //rand < 1 ? dooDads[data.being.substring(data.being.length - 1)]++:
-  inventory.push(Item.list[data.being + "item" + rand]);
+  inventory.push(Item.list[data.being + 'item' + rand]);
 });
 function Sprite(image, width, height, rowLength, inverse) {
   this.image = image;

@@ -1,12 +1,12 @@
 'use strict';
-var mongojs = require("mongojs");
+var mongojs = require('mongojs');
 //var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
 var db = mongojs('localhost:27017/myGame', ['account', 'progress']);
 var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
 
-app.get("/", function(req, res) {
+app.get('/', function(req, res) {
   res.sendFile(__dirname + '/client');
 });
 //app.use('/client', express.static(__dirname + '/client'));
@@ -26,8 +26,8 @@ var Entity = function(playerId) {
     id: playerId,
     attacking: false,
     attackingTicks: 0,
-    target: "",
-    being: ""
+    target: '',
+    being: ''
   }
   self.update = function() {
     self.updatePosition();
@@ -107,7 +107,7 @@ var Mob = function(id, difficulty) {
   self.x = Math.random() * 450;
   self.y = Math.random() * 450;
   self.range = 60;
-  self.being = "mob" + difficulty;
+  self.being = 'mob' + difficulty;
   self.speed = 2;
   self.damage = 10 * Math.pow(1.5, difficulty);
   self.health = 50 * Math.pow(1.5, difficulty);
@@ -210,17 +210,17 @@ var Mob = function(id, difficulty) {
 var Player = function(id, playerType) {
   var self = Entity(id);
   self.being = playerType;
-  if (self.being === "Knight") {
+  if (self.being === 'Knight') {
     self.speed = 2;
     self.health = 1000;
     self.damage = 25;
     self.range = 75;
-  } else if (self.being === "Shaman") {
+  } else if (self.being === 'Shaman') {
     self.speed = 1;
     self.health = 500;
     self.damage = 10;
     self.range = 9999999999;
-  } else if (self.being === "Thief") {
+  } else if (self.being === 'Thief') {
     self.speed = 2;
     self.health = 750;
     self.damage = 20;
@@ -293,7 +293,7 @@ var Player = function(id, playerType) {
         });
       }
       if (self.attackingTicks >= 60) {
-        if (self.being === "Shaman") {
+        if (self.being === 'Shaman') {
           for (var i in Map.list[self.mapId].mobList)
             self.attack(Map.list[self.mapId].mobList[i]);
         } else
@@ -311,7 +311,7 @@ var Player = function(id, playerType) {
   self.levelUp = function() {
     while (600 * Math.pow(6 / 5, self.level) - 500 <= self.xp) {
       self.level++;
-      console.log("level " + self.level);
+      console.log('level ' + self.level);
     }
   }
   return self;
@@ -447,7 +447,7 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('sendText', function(data) {
-    var playerName = "" + socket.id;
+    var playerName = '' + socket.id;
     for (var i in socketlist) {
       socketlist[i].emit('addToChat', playerName + ': ' + data);
     }
