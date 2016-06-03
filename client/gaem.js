@@ -1,4 +1,95 @@
 'use strict';
+
+class Item {
+  constructor(image, xImage, yImage, width, height) {
+    this.image = image;
+    this.xImage = xImage;
+    this.yImage = yImage;
+    this.width = width;
+    this.height = height;
+  }
+  draw(xPosition, yPosition) {
+    ctx.drawImage(this.image, this.xImage, this.yImage, width, height, xPosition, yPosition, 32, 32);
+  }
+}
+Item.list = {};
+
+class Player {
+  constructor(pack) {
+    this.number = pack.number;
+    this.x = pack.x;
+    this.y = pack.y;
+    this.sprite = Sprite.list['Character' + pack.being];
+    this.sprite = new Sprite(this.sprite.image,this.sprite.width,this.sprite.height,this.sprite.rowLength,this.sprite.inverse);
+    Player.list[this.number] = this;
+  }
+}
+Player.list = {};
+
+class Mob {
+  constructor(pack) {
+    this.number = pack.number;
+    this.x = pack.x;
+    this.y = pack.y;
+    this.sprite = Sprite.list[pack.being];
+    this.sprite = new Sprite(this.sprite.image,this.sprite.width,this.sprite.height,this.sprite.rowLength,this.sprite.inverse);
+    Mob.list[this.number] = this;
+  }
+}
+Mob.list = {};
+
+class Button {
+  constructor(xStart, xEnd, yStart, yEnd, funct) {
+    this.xStart = xStart;
+    this.xEnd = xEnd;
+    this.yStart = yStart;
+    this.yEnd = yEnd;
+    this.funct = funct;
+  }
+  isClicked(xPosition, yPosition) {
+    if (xPosition > this.xStart && xPosition < this.xEnd && yPosition > this.yStart && yPosition < this.yEnd) {
+      innerButtons = [];
+      ctx.fillStyle = 'rgba(206,255,255,1)';
+      ctx.fillRect(500, 0, 200, 500);
+      this.funct();
+      drawButtons();
+    }
+  }
+  draw() {
+    ctx.fillStyle = 'rgba(0,0,0,1)';
+    ctx.fillRect(this.xStart, this.yStart, this.xEnd - this.xStart, this.yEnd - this.yStart);
+  }
+}
+
+class Sprite {
+  constructor(image, width, height, rowLength, inverse) {
+    this.image = image;
+    this.width = width;
+    this.height = height;
+    this.index = 0;
+    this.row = 0;
+    this.rowLength = rowLength;
+    this.framesOn = 0;
+    this.inverse = inverse;
+    this.reverse = 1;
+  }
+  draw(xPosition, yPosition) {
+    ctx.save();
+    if (this.reverse * this.inverse === -1)
+      ctx.scale(-1, 1);
+    ctx.drawImage(this.image, this.width * this.index, this.height * this.row, this.width, this.height, this.reverse * this.inverse * (xPosition - this.width * 3 / 2), yPosition - this.height * 3 / 2, this.reverse * this.inverse * this.width * 3, this.height * 3);
+    ctx.restore();
+    if (this.framesOn >= 60 / this.rowLength) {
+      this.index++;
+      this.framesOn = 0;
+    }
+    this.framesOn++;
+    if (this.index > this.rowLength - 1)
+      this.index = 0;
+  }
+}
+Sprite.list = {};
+
 var socket = io();
 var signDiv = document.getElementById('signDiv');
 var signDivUsername = document.getElementById('signDiv-username');
@@ -12,10 +103,11 @@ var innerButtons = [];
 var inventory = [];
 var dooDads = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 var menuButtons = [
-new Button(500,550,0,20,openMap),
-new Button(550,600,0,20,drawInventory),
-//new Button(600, 650, 0, 20, drawInventory)
+  new Button(500,550,0,20,openMap),
+  new Button(550,600,0,20,drawInventory),
+  //new Button(600, 650, 0, 20, drawInventory)
 ];
+
 var images = [
   { image: 'img/CharacterKnight.png', size: 32, inverse: 1 },
   { image: 'img/CharacterWizard.png', size: 32, inverse: 1 },
@@ -34,8 +126,6 @@ var images = [
 var itemImages = [
   { image: 'img/items.png', size: 32, rowLength: 16, total: 150 }
 ];
-Sprite.list = {};
-Item.list = {};
 var itemHash = {
   mob1: [
     { item: 13, image: 0 },
@@ -164,28 +254,6 @@ chatForm.onsubmit = function(e) {
   chatInput.value = '';
 }
 
-var Player = function(pack) {
-  var self = {};
-  self.number = pack.number;
-  self.x = pack.x;
-  self.y = pack.y;
-  self.sprite = Sprite.list['Character' + pack.being];
-  self.sprite = new Sprite(self.sprite.image,self.sprite.width,self.sprite.height,self.sprite.rowLength,self.sprite.inverse);
-  Player.list[self.number] = self;
-  return self;
-}
-Player.list = {};
-var Mob = function(pack) {
-  var self = {}
-  self.number = pack.number;
-  self.x = pack.x;
-  self.y = pack.y;
-  self.sprite = Sprite.list[pack.being];
-  self.sprite = new Sprite(self.sprite.image,self.sprite.width,self.sprite.height,self.sprite.rowLength,self.sprite.inverse);
-  Mob.list[self.number] = self;
-  return self;
-}
-Mob.list = {};
 socket.on('init', function(data) {
   for (var i in data.players) {
     new Player(data.players[i]);
@@ -228,26 +296,7 @@ socket.on('changeRow', function(data) {
       Mob.list[data.mobs[i].number].sprite.reverse = data.mobs[i].reverse;
   }
 });
-function Button(xStart, xEnd, yStart, yEnd, funct) {
-  this.xStart = xStart;
-  this.xEnd = xEnd;
-  this.yStart = yStart;
-  this.yEnd = yEnd;
-  this.funct = funct;
-  this.isClicked = function(xPosition, yPosition) {
-    if (xPosition > this.xStart && xPosition < this.xEnd && yPosition > this.yStart && yPosition < this.yEnd) {
-      innerButtons = [];
-      ctx.fillStyle = 'rgba(206,255,255,1)';
-      ctx.fillRect(500, 0, 200, 500);
-      this.funct();
-      drawButtons();
-    }
-  }
-  this.draw = function() {
-    ctx.fillStyle = 'rgba(0,0,0,1)';
-    ctx.fillRect(this.xStart, this.yStart, this.xEnd - this.xStart, this.yEnd - this.yStart);
-  }
-}
+
 function drawButtons() {
   for (var i = 0; i < menuButtons.length; i++) {
     menuButtons[i].draw();
@@ -322,16 +371,7 @@ function openMap() {
   }
   ));
 }
-function Item(image, xImage, yImage, width, height) {
-  this.image = image;
-  this.xImage = xImage;
-  this.yImage = yImage;
-  this.width = width;
-  this.height = height;
-  this.draw = function(xPosition, yPosition) {
-    ctx.drawImage(this.image, this.xImage, this.yImage, width, height, xPosition, yPosition, 32, 32);
-  }
-}
+
 function drawInventory() {
   for (var i = 0; i < inventory.length; i++) {
     inventory[i].draw(500 + i % 6 * 32, Math.floor(i / 6) * 32 + 20);
@@ -350,31 +390,7 @@ socket.on('addItem', function(data) {
   //rand < 1 ? dooDads[data.being.substring(data.being.length - 1)]++:
   inventory.push(Item.list[data.being + 'item' + rand]);
 });
-function Sprite(image, width, height, rowLength, inverse) {
-  this.image = image;
-  this.width = width;
-  this.height = height;
-  this.index = 0;
-  this.row = 0;
-  this.rowLength = rowLength;
-  this.framesOn = 0;
-  this.inverse = inverse;
-  this.reverse = 1;
-  this.draw = function(xPosition, yPosition) {
-    ctx.save();
-    if (this.reverse * this.inverse === -1)
-      ctx.scale(-1, 1);
-    ctx.drawImage(this.image, this.width * this.index, this.height * this.row, this.width, this.height, this.reverse * this.inverse * (xPosition - this.width * 3 / 2), yPosition - this.height * 3 / 2, this.reverse * this.inverse * this.width * 3, this.height * 3);
-    ctx.restore();
-    if (this.framesOn >= 60 / rowLength) {
-      this.index++;
-      this.framesOn = 0;
-    }
-    this.framesOn++;
-    if (this.index > this.rowLength - 1)
-      this.index = 0;
-  }
-}
+
 setInterval(function() {
   ctx.clearRect(0, 0, 500, 500);
   for (var i in Player.list) {
