@@ -16,157 +16,61 @@ new Button(550,600,0,20,drawInventory),
 //new Button(600, 650, 0, 20, drawInventory)
 ];
 var images = [
-{
-  image: "img/CharacterKnight.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/CharacterWizard.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/CharacterThief.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/CharacterShaman.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/mob9.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/mob8.png",
-  size: 48,
-  inverse: -1
-},
-{
-  image: "img/mob7.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/mob6.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/mob5.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/mob4.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/mob3.png",
-  size: 32,
-  inverse: 1
-},
-{
-  image: "img/mob2.png",
-  size: 32,
-  inverse: -1
-},
-{
-  image: "img/mob1.png",
-  size: 32,
-  inverse: -1
-}
+  { image: "img/CharacterKnight.png", size: 32, inverse: 1 },
+  { image: "img/CharacterWizard.png", size: 32, inverse: 1 },
+  { image: "img/CharacterThief.png", size: 32, inverse: 1 },
+  { image: "img/CharacterShaman.png", size: 32, inverse: 1 },
+  { image: "img/mob9.png", size: 32, inverse: 1 },
+  { image: "img/mob8.png", size: 48, inverse: -1 },
+  { image: "img/mob7.png", size: 32, inverse: 1 },
+  { image: "img/mob6.png", size: 32, inverse: 1 },
+  { image: "img/mob5.png", size: 32, inverse: 1 },
+  { image: "img/mob4.png", size: 32, inverse: 1 },
+  { image: "img/mob3.png", size: 32, inverse: 1 },
+  { image: "img/mob2.png", size: 32, inverse: -1 },
+  { image: "img/mob1.png", size: 32, inverse: -1 }
 ];
 var itemImages = [
-{
-  image: "img/items.png",
-  size: 32,
-  rowLength: 16,
-  total: 150
-}
-]
+  { image: "img/items.png", size: 32, rowLength: 16, total: 150 }
+];
 Sprite.list = {};
 Item.list = {};
 itemHash = {
-  "mob1": [
-  {
-    item: 13,
-    image: 0
-  },
-  {
-    item: 0,
-    image: 0
-  },
-  {
-    item: 1,
-    image: 0
-  },
-  {
-    item: 2,
-    image: 0
-  },
-  {
-    item: 2,
-    image: 0
-  }
+  mob1: [
+    { item: 13, image: 0 },
+    { item: 0, image: 0 },
+    { item: 1, image: 0 },
+    { item: 2, image: 0 },
+    { item: 2, image: 0 }
   ],
-  "mob2": [
-  {
-    item: 29,
-    image: 0
-  }
+  mob2: [
+    { item: 29, image: 0 }
   ],
-  "mob3": [
-  {
-    item: 45,
-    image: 0
-  }
+  mob3: [
+    { item: 45, image: 0 }
   ],
-  "mob4": [
-  {
-    item: 57,
-    image: 0
-  }
+  mob4: [
+    { item: 57, image: 0 }
   ],
-  "mob5": [
-  {
-    item: 93,
-    image: 0
-  }
+  mob5: [
+    { item: 93, image: 0 }
   ],
-  "mob6": [
-  {
-    item: 109,
-    image: 0
-  }
+  mob6: [
+    { item: 109, image: 0 }
   ],
-  "mob7": [
-  {
-    item: 60,
-    image: 0
-  }
+  mob7: [
+    { item: 60, image: 0 }
   ],
-  "mob8": [
-  {
-    item: 76,
-    image: 0
-  }
+  mob8: [
+    { item: 76, image: 0 }
   ],
-  "mob9": [
-  {
-    item: 92,
-    image: 0
-  }
+  mob9: [
+    { item: 92, image: 0 }
   ]
 };
 var imageLoader = function(i) {
   var imageItem = new Image();
-  imageItem.src = itemImages[i];
+  imageItem.src = itemImages[i].image;
   imageItem.addEventListener('load', function() {
     if (i < itemImages.length - 1)
       imageLoader(i + 1);
