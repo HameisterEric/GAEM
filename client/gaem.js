@@ -9,7 +9,7 @@ class Item {
     this.height = height;
   }
   draw(xPosition, yPosition) {
-    ctx.drawImage(this.image, this.xImage, this.yImage, width, height, xPosition, yPosition, 32, 32);
+    ctx.drawImage(this.image, this.xImage, this.yImage, this.width, this.height, this.xPosition, this.yPosition, 32, 32);
   }
 }
 Item.list = {};
