@@ -1,12 +1,13 @@
-var mongojs = require("mongojs");
-var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
-//var db = mongojs('localhost:27017/myGame', ['account','progress']);
+'use strict';
+var mongojs = require('mongojs');
+//var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
+var db = mongojs('localhost:27017/myGame', ['account', 'progress']);
 var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
 
-app.get("/", function(req, res){
-	res.sendFile(__dirname + '/client');
+app.get('/', function(req, res) {
+  res.sendFile(__dirname + '/client');
 });
 //app.use('/client', express.static(__dirname + '/client'));
 app.use(express.static('client'));
@@ -15,425 +16,465 @@ serv.listen(port);
 
 var socketlist = {};
 var playerlist = {};
-var Entity = function(playerId){
-	var self = {
-		x: 250,
-		y: 250,
-		xSpeed: 0,
-		
-		ySpeed: 0,
-		id: playerId,
-		attacking: false,
-		attackingTicks: 0,
-		target: "",
-		being: ""
-	}
-	self.update = function(){
-		self.updatePosition();
-	}
-	self.updatePosition = function(){
-		self.x += self.xSpeed;
-		self.y += self.ySpeed;
-	}
-	return self;
-}
-var Map = function(mapId){
-	self = {
-		id: mapId,
-		mobList: [],
-		playerList: [],
-		initPack: {players:[],mobs:[]},
-		removePack: {players:[],mobs:[]},
-		changeRowPack: {players:[], mobs:[]},
-		mobCount: 0,
-		playerCount: 0,
-		toDelete: false,
-		difficulty: 1
-	}
-	self.addMob = function(mob){
-		Map.list[mob.id].mobList.push(mob);
-	}	
-	self.addPlayer = function(player, mapId){
-		player.updateMapId(mapId);
-		socketlist[player.id].emit('init', Map.list[player.mapId].onStart(mapId));
-		Map.list[player.mapId].playerList.push(player);
-		Map.list[player.mapId].initPack.players.push({
-			being: player.being,
-			number: player.arrayPosition,
-			x: player.x,
-			y: player.y
-		});
-	}
-	self.onStart = function(mapId){
-		var playerPack = []
-		for(var i in Map.list[mapId].playerList){
-			playerPack.push({
-				being: Map.list[mapId].playerList[i].being,
-				number: Map.list[mapId].playerList[i].arrayPosition,
-				x: Map.list[mapId].playerList[i].x,
-				y: Map.list[mapId].playerList[i].y
-			});
-		}
-		var mobPack = []
-		for(var i in Map.list[mapId].mobList){
-			mobPack.push({
-				being: Map.list[mapId].mobList[i].being,
-				number: Map.list[mapId].mobList[i].arrayPosition,
-				x: Map.list[mapId].mobList[i].x,
-				y: Map.list[mapId].mobList[i].y
-			});
-		}
-		return {players: playerPack, mobs: mobPack}
-	}
-	Map.list[self.id] = self;
-	return self;
+
+class Map {
+  constructor(mapId) {
+    this.id = mapId;
+    this.mobList = [];
+    this.playerList = [];
+    this.initPack = {
+      players: [],
+      mobs: []
+    };
+    this.removePack = {
+      players: [],
+      mobs: []
+    };
+    this.changeRowPack = {
+      players: [],
+      mobs: []
+    };
+    this.mobCount = 0;
+    this.playerCount = 0;
+    this.toDelete = false;
+    this.difficulty = 1;
+    Map.list[this.id] = this;
+  }
+  addMob(mob) {
+    Map.list[mob.id].mobList.push(mob);
+  }
+  addPlayer(player, mapId) {
+    player.updateMapId(mapId);
+    socketlist[player.id].emit('init', Map.list[player.mapId].onStart(mapId));
+    Map.list[player.mapId].playerList.push(player);
+    Map.list[player.mapId].initPack.players.push({
+      being: player.being,
+      number: player.arrayPosition,
+      x: player.x,
+      y: player.y
+    });
+  }
+  onStart(mapId) {
+    var playerPack = []
+    for (var i in Map.list[mapId].playerList) {
+      playerPack.push({
+        being: Map.list[mapId].playerList[i].being,
+        number: Map.list[mapId].playerList[i].arrayPosition,
+        x: Map.list[mapId].playerList[i].x,
+        y: Map.list[mapId].playerList[i].y
+      });
+    }
+    var mobPack = []
+    for (var i in Map.list[mapId].mobList) {
+      mobPack.push({
+        being: Map.list[mapId].mobList[i].being,
+        number: Map.list[mapId].mobList[i].arrayPosition,
+        x: Map.list[mapId].mobList[i].x,
+        y: Map.list[mapId].mobList[i].y
+      });
+    }
+    return {
+      players: playerPack,
+      mobs: mobPack
+    }
+  }
 }
 Map.list = {};
-var Mob = function(id, difficulty){
-	var self = Entity(id);
-	self.x = Math.random()*450;
-	self.y = Math.random()*450;
-	self.range = 60;
-	self.being = "mob" + difficulty;
-	self.speed = 2;
-	self.damage = 10 * Math.pow(1.5, difficulty);
-	self.health = 50 * Math.pow(1.5, difficulty);
-	self.xpGiven = 10 * Math.pow(1.5, difficulty);
-	self.arrayPosition = Map.list[self.id].mobCount;
-	Map.list[self.id].mobCount++;
-	var super_update = self.update;
-	Map.list[self.id].initPack.mobs.push({
-		being: self.being,
-		number: self.arrayPosition,
-		x: self.x,
-		y: self.y
-	});
-	
-	self.update = function(){
-		var a = self.tick();
-		super_update();
-		return a;
-	}
-	self.tick = function(){
-		if(this.health <= 0){
-			Map.list[self.id].removePack.mobs.push({number: self.arrayPosition});
-			delete Map.list[self.id].mobList[self.arrayPosition];
-			self.giveXP();
-			return false;
-		} else {
-			if (!self.target){
-				var closest = 9999999999;
-				var position = -1;
-				for(var i in Map.list[self.id].playerList){
-					var player = Map.list[self.id].playerList[i];
-					var distance = Math.pow(player.x-self.x,2) +Math.pow(player.y - 20 - self.y,2);
-					if(distance < closest){
-						closest = distance;
-						position = i;
-					}
-				}
-				if(position > -1){
-					self.target = Map.list[self.id].playerList[position];
-					Map.list[self.id].changeRowPack.mobs.push({
-						number: self.arrayPosition,
-						row: 2,
-						reverse:self.target.x > self.x ? 1:-1
-					});
-				}
-			}
-			if(!self.attacking){
-				if(Math.pow(self.target.x-self.x,2) +Math.pow(self.target.y -20-self.y,2)<self.range*self.range){
-					self.attacking = true;
-					Map.list[self.id].changeRowPack.mobs.push({
-						number: self.arrayPosition,
-						row: 3,
-						reverse: self.target.x > self.x ? 1:-1
-					});
-				}
-				else{
-					var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
-					self.xSpeed = Math.cos(angle)*self.speed;
-					self.ySpeed = Math.sin(angle)*self.speed;
-				}
-			}
-			if(self.attacking){
-				self.xSpeed = 0;
-				self.ySpeed = 0;
-				self.attackingTicks++;
-				if(self.attackingTicks >= 60){
-					Map.list[self.id].changeRowPack.mobs.push({
-						number: self.arrayPosition,
-						row: 0
-					});
-					self.attack(self.target);
-					self.attacking = false;
-					self.attackingTicks = 0;
-				}
-			}
-			return true;
-		}
-	}
-	self.attack = function(target){
-		target.health -= self.damage;
-	}
-	self.giveXP = function(){
-		var numberOfPlayers = Map.list[self.id].playerList.length;
-		for(var i in Map.list[self.id].playerList){
-			Map.list[self.id].playerList[i].xp += self.xpGiven/numberOfPlayers;
-		}
-		for (var i in Map.list[self.id].playerList){
-			if(Math.random() < 1/ 10 / numberOfPlayers)
-			socketlist[Map.list[self.id].playerList[i].id].emit('addItem', {being: self.being, item: 0});
-		}
-	}
-	return self;
+
+class Entity {
+  constructor(playerId) {
+    this.x = 250;
+    this.y = 250;
+    this.xSpeed = 0;
+    this.ySpeed = 0;
+    this.id = playerId;
+    this.attacking = false;
+    this.attackingTicks = 0;
+    this.target = '';
+    this.being = '';
+  }
+  update() {
+    this.updatePosition();
+  }
+  updatePosition() {
+    this.x += this.xSpeed;
+    this.y += this.ySpeed;
+  }
 }
 
-var Player = function(id, playerType){
-	var self = Entity(id);
-	self.being = playerType;
-	if(self.being === "Knight"){
-		self.speed = 2;
-		self.health = 1000;
-		self.damage = 25;
-		self.range = 75;
-	} else if(self.being === "Shaman"){
-		self.speed = 1;
-		self.health = 500;
-		self.damage = 10;
-		self.range = 9999999999;
-	} else if(self.being === "Thief"){
-		self.speed = 2;
-		self.health = 750;
-		self.damage = 20;
-		self.range = 65;
-	} else {
-		self.speed = 2;
-		self.health = 750;
-		self.damage = 20;
-		self.range = 300;
-	}
-	self.arrayPosition = 0;
-	self.level = 0;
-	self.xp = 0;
-	self.mapId = id;
-	var super_update = self.update;	
-	self.updateMapId = function(newId){
-		self.mapId = newId;
-		self.arrayPosition = Map.list[self.mapId].playerCount;
-		Map.list[self.mapId].playerCount++;
-	}
-	self.update = function(){
-		self.tick();
-		super_update();
-	}
-	self.tick = function(){
-		if (!self.target){
-			var closest = 9999999999;
-			var position = -1;
-			for(var i in Map.list[self.mapId].mobList){
-				var mob = Map.list[self.mapId].mobList[i];
-				var distance = Math.pow(mob.x-self.x,2) +Math.pow(mob.y-self.y,2);
-				if(distance < closest){
-					closest = distance;
-					position = i;
-				}
-			}
-			if(position > -1){
-				self.target = Map.list[self.mapId].mobList[position]
-				Map.list[self.mapId].changeRowPack.players.push({
-					number: self.arrayPosition,
-					row: 2,
-					reverse: self.target.x > self.x ? 1:-1
-				});
-			}
-		}
-		if(self.target && !self.attacking){
-			var angle = Math.atan2(self.target.y - self.y,self.target.x - self.x);
-			self.xSpeed = Math.cos(angle)*self.speed;
-			self.ySpeed = Math.sin(angle)*self.speed;
-			if(Math.pow(self.target.x-self.x,2) +Math.pow(self.target.y-self.y,2)<self.range*self.range){
-				self.attacking = true;
-				Map.list[self.mapId].changeRowPack.players.push({
-					number: self.arrayPosition,
-					row: 3,
-					reverse: self.target.x > self.x ? 1:-1
-			});
-			}
-		}
-		if(self.attacking){
-			self.xSpeed = 0;
-			self.ySpeed = 0;
-			self.attackingTicks++;
-			if(!Map.list[self.mapId].mobList[self.target.arrayPosition]){
-			self.target = undefined;
-			self.attacking = false;
-			self.attackingTicks = 0;
-				Map.list[self.mapId].changeRowPack.players.push({
-					number: self.arrayPosition,
-					row: 0,
-				});
-			}
-			if(self.attackingTicks >= 60){
-				if(self.being === "Shaman") {
-					for(var i in Map.list[self.mapId].mobList) 
-						self.attack(Map.list[self.mapId].mobList[i]);
-				} else self.attack(self.target);
-				self.attacking = false;
-				self.attackingTicks = 0;
-			}
-		}
-	}
-	self.attack = function(target){
-		self.levelUp();
-		var damageAfterModifyers = self.damage*Math.pow(1.1,self.level);
-		target.health -= damageAfterModifyers;
-	}
-	self.levelUp = function(){
-		while (600 * Math.pow(6/5, self.level) - 500 <= self.xp) {
-      self.level++;
-			console.log("level " + self.level);
-		}
-	}
-	return self;
-}
-Player.onConnect = function(socket, playerType, mapId){
-	if(!mapId) mapId = Math.random();
-	var map = Map.list[mapId] || new Map(mapId);
-	var player = new Player(socket.id, playerType);
-	playerlist[socketlist[socket.id].id] = player;
-	map.addPlayer(player,map.id);
+class Mob extends Entity {
+  constructor(id, difficulty) {
+    super(id);
+    this.x = Math.random() * 450;
+    this.y = Math.random() * 450;
+    this.range = 60;
+    this.being = 'mob' + difficulty;
+    this.speed = 2;
+    this.damage = 10 * Math.pow(1.5, difficulty);
+    this.health = 50 * Math.pow(1.5, difficulty);
+    this.xpGiven = 10 * Math.pow(1.5, difficulty);
+    this.arrayPosition = Map.list[this.id].mobCount;
+    Map.list[this.id].mobCount++;
+    Map.list[this.id].initPack.mobs.push({
+      being: this.being,
+      number: this.arrayPosition,
+      x: this.x,
+      y: this.y
+    });
+  }
+  update() {
+    var a = this.tick();
+    super.update();
+    return a;
+  }
+  tick() {
+    if (this.health <= 0) {
+      Map.list[this.id].removePack.mobs.push({
+        number: this.arrayPosition
+      });
+      delete Map.list[this.id].mobList[this.arrayPosition];
+      this.giveXP();
+      return false;
+    } else {
+      if (!this.target) {
+        var closest = 9999999999;
+        var position = -1;
+        for (var i in Map.list[this.id].playerList) {
+          var player = Map.list[this.id].playerList[i];
+          var distance = Math.pow(player.x - this.x, 2) + Math.pow(player.y - 20 - this.y, 2);
+          if (distance < closest) {
+            closest = distance;
+            position = i;
+          }
+        }
+        if (position > -1) {
+          this.target = Map.list[this.id].playerList[position];
+          Map.list[this.id].changeRowPack.mobs.push({
+            number: this.arrayPosition,
+            row: 2,
+            reverse: this.target.x > this.x ? 1 : -1
+          });
+        }
+      }
+      if (!this.attacking) {
+        if (Math.pow(this.target.x - this.x, 2) + Math.pow(this.target.y - 20 - this.y, 2) < this.range * this.range) {
+          this.attacking = true;
+          Map.list[this.id].changeRowPack.mobs.push({
+            number: this.arrayPosition,
+            row: 3,
+            reverse: this.target.x > this.x ? 1 : -1
+          });
+        }
+        else {
+          var angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+          this.xSpeed = Math.cos(angle) * this.speed;
+          this.ySpeed = Math.sin(angle) * this.speed;
+        }
+      }
+      if (this.attacking) {
+        this.xSpeed = 0;
+        this.ySpeed = 0;
+        this.attackingTicks++;
+        if (this.attackingTicks >= 60) {
+          Map.list[this.id].changeRowPack.mobs.push({
+            number: this.arrayPosition,
+            row: 0
+          });
+          this.attack(this.target);
+          this.attacking = false;
+          this.attackingTicks = 0;
+        }
+      }
+      return true;
+    }
+  }
+  attack(target) {
+    target.health -= this.damage;
+  }
+  giveXP() {
+    var numberOfPlayers = Map.list[this.id].playerList.length;
+    for (var i in Map.list[this.id].playerList) {
+      Map.list[this.id].playerList[i].xp += this.xpGiven / numberOfPlayers;
+    }
+    for (var i in Map.list[this.id].playerList) {
+      if (Math.random() < 1 / 10 / numberOfPlayers)
+        socketlist[Map.list[this.id].playerList[i].id].emit('addItem', {
+          being: this.being,
+          item: 0
+        });
+    }
+  }
 }
 
-Player.onDisconnect = function(socket){
-	if(playerlist[socket.id]){
-		var toDelete = false;
-		if(Map.list[playerlist[socket.id].mapId].playerList.length === 1) toDelete = true;
-		Map.list[playerlist[socket.id].mapId].removePack.players.push({number: playerlist[socket.id].arrayPosition});
-		delete Map.list[playerlist[socket.id].mapId].playerList[playerlist[socket.id].arrayPosition];
-		if(toDelete) delete Map.list[playerlist[socket.id].mapId];
-	}
+class Player extends Entity {
+  constructor(id, playerType) {
+    super(id);
+    this.being = playerType;
+    if (this.being === 'Knight') {
+      this.speed = 2;
+      this.health = 1000;
+      this.damage = 25;
+      this.range = 75;
+    } else if (this.being === 'Shaman') {
+      this.speed = 1;
+      this.health = 500;
+      this.damage = 10;
+      this.range = 9999999999;
+    } else if (this.being === 'Thief') {
+      this.speed = 2;
+      this.health = 750;
+      this.damage = 20;
+      this.range = 65;
+    } else {
+      this.speed = 2;
+      this.health = 750;
+      this.damage = 20;
+      this.range = 300;
+    }
+    this.arrayPosition = 0;
+    this.level = 0;
+    this.xp = 0;
+    this.mapId = id;
+  }
+  updateMapId(newId) {
+    this.mapId = newId;
+    this.arrayPosition = Map.list[this.mapId].playerCount;
+    Map.list[this.mapId].playerCount++;
+  }
+  update() {
+    this.tick();
+    super.update();
+  }
+  tick() {
+    if (!this.target) {
+      var closest = 9999999999;
+      var position = -1;
+      for (var i in Map.list[this.mapId].mobList) {
+        var mob = Map.list[this.mapId].mobList[i];
+        var distance = Math.pow(mob.x - this.x, 2) + Math.pow(mob.y - this.y, 2);
+        if (distance < closest) {
+          closest = distance;
+          position = i;
+        }
+      }
+      if (position > -1) {
+        this.target = Map.list[this.mapId].mobList[position]
+        Map.list[this.mapId].changeRowPack.players.push({
+          number: this.arrayPosition,
+          row: 2,
+          reverse: this.target.x > this.x ? 1 : -1
+        });
+      }
+    }
+    if (this.target && !this.attacking) {
+      var angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+      this.xSpeed = Math.cos(angle) * this.speed;
+      this.ySpeed = Math.sin(angle) * this.speed;
+      if (Math.pow(this.target.x - this.x, 2) + Math.pow(this.target.y - this.y, 2) < this.range * this.range) {
+        this.attacking = true;
+        Map.list[this.mapId].changeRowPack.players.push({
+          number: this.arrayPosition,
+          row: 3,
+          reverse: this.target.x > this.x ? 1 : -1
+        });
+      }
+    }
+    if (this.attacking) {
+      this.xSpeed = 0;
+      this.ySpeed = 0;
+      this.attackingTicks++;
+      if (!Map.list[this.mapId].mobList[this.target.arrayPosition]) {
+        this.target = undefined;
+        this.attacking = false;
+        this.attackingTicks = 0;
+        Map.list[this.mapId].changeRowPack.players.push({
+          number: this.arrayPosition,
+          row: 0,
+        });
+      }
+      if (this.attackingTicks >= 60) {
+        if (this.being === 'Shaman') {
+          for (var i in Map.list[this.mapId].mobList)
+            this.attack(Map.list[this.mapId].mobList[i]);
+        } else
+          this.attack(this.target);
+        this.attacking = false;
+        this.attackingTicks = 0;
+      }
+    }
+  }
+  attack(target) {
+    this.levelUp();
+    var damageAfterModifyers = this.damage * Math.pow(1.1, this.level);
+    target.health -= damageAfterModifyers;
+  }
+  levelUp() {
+    while (600 * Math.pow(6 / 5, this.level) - 500 <= this.xp) {
+      this.level++;
+      console.log('level ' + this.level);
+    }
+  }
 }
 
-Map.update = function(map){
-	var mobPack = [];
-	for(var i in Map.list[map].mobList){
-		mob = Map.list[map].mobList[i];
-		if(mob.update()){
-			mobPack.push({
-				number: mob.arrayPosition,
-				being: mob.being,
-				x: mob.x,
-				y: mob.y
-			});
-		}
-	}
-	var playerPack = [];
-	for(var i in Map.list[map].playerList){
-		player = Map.list[map].playerList[i];
-		player.update();
-		playerPack.push({
-			number: player.arrayPosition,
-			being: player.being,
-			x: player.x,
-			y: player.y
-		});
-	}
-	var pack = {
-		players:playerPack,
-		mobs:mobPack
-	}
-	return pack;
+Player.onConnect = function(socket, playerType, mapId) {
+  if (!mapId)
+    mapId = Math.random();
+  var map = Map.list[mapId] || new Map(mapId);
+  var player = new Player(socket.id,playerType);
+  playerlist[socketlist[socket.id].id] = player;
+  map.addPlayer(player, map.id);
 }
 
-var isValidPassword = function(data,cb){
-	db.account.find({username:data.username,password:data.password},function(err,res){
-		if(res.length > 0)
-			cb(true);
-		else
-			cb(false);
-	});
+Player.onDisconnect = function(socket) {
+  if (playerlist[socket.id]) {
+    var toDelete = false;
+    if (Map.list[playerlist[socket.id].mapId].playerList.length === 1)
+      toDelete = true;
+    Map.list[playerlist[socket.id].mapId].removePack.players.push({
+      number: playerlist[socket.id].arrayPosition
+    });
+    delete Map.list[playerlist[socket.id].mapId].playerList[playerlist[socket.id].arrayPosition];
+    if (toDelete)
+      delete Map.list[playerlist[socket.id].mapId];
+  }
 }
 
-var isUsernameTaken = function(data,cb){
-	db.account.find({username:data.username},function(err,res){
-		if(res.length > 0)
-			cb(true);
-		else
-			cb(false);
-	});
+Map.update = function(map) {
+  var mobPack = [];
+  for (var i in Map.list[map].mobList) {
+    var mob = Map.list[map].mobList[i];
+    if (mob.update()) {
+      mobPack.push({
+        number: mob.arrayPosition,
+        being: mob.being,
+        x: mob.x,
+        y: mob.y
+      });
+    }
+  }
+  var playerPack = [];
+  for (var i in Map.list[map].playerList) {
+    var player = Map.list[map].playerList[i];
+    player.update();
+    playerPack.push({
+      number: player.arrayPosition,
+      being: player.being,
+      x: player.x,
+      y: player.y
+    });
+  }
+  var pack = {
+    players: playerPack,
+    mobs: mobPack
+  }
+  return pack;
 }
 
-var addUser = function(data,cb){
-	db.account.insert({username:data.username,password:data.password},function(err,res){
-		cb();
-	});
+var isValidPassword = function(data, cb) {
+  db.account.find({
+    username: data.username,
+    password: data.password
+  }, function(err, res) {
+    if (res.length > 0)
+      cb(true);
+    else
+      cb(false);
+  });
 }
 
-var io = require('socket.io')(serv,{});
-io.sockets.on('connection', function(socket){
-	socket.id = Math.random();
-	socketlist[socket.id] = socket;
-	
-	socket.on('signIn',function(data){
-		isValidPassword(data, function(res){
-			if(res){
-				socket.emit('signInResponse',{success:true});
-			}	else {
-				socket.emit('signInResponse',{sucess:false});
-			}
-		});
-	});
-	socket.on('loaded',function(data){
-		Player.onConnect(socket, data.playerType, data.map);
-	});
-	socket.on('signUp',function(data){
-		isUsernameTaken(data, function(res){
-			if(res){
-				socket.emit('signUpResponse',{success:false});
-			} else {
-				addUser(data, function(){
-					socket.emit('signUpResponse',{success:true});
-				});	
-			}
-		});
-	});
-	socket.on('changeDifficulty', function(data){
-		Map.list[playerlist[socket.id].mapId].difficulty = data.difficulty;
-	});
-	socket.on('disconnect',function(){
-		Player.onDisconnect(socket);
-		delete socketlist[socket.id];
-	});
-	
-	socket.on('sendText',function(data){
-		var playerName = "" + socket.id;
-		for(var i in socketlist){
-			socketlist[i].emit('addToChat', playerName +': ' + data);
-		}
-	});
+var isUsernameTaken = function(data, cb) {
+  db.account.find({
+    username: data.username
+  }, function(err, res) {
+    if (res.length > 0)
+      cb(true);
+    else
+      cb(false);
+  });
+}
+
+var addUser = function(data, cb) {
+  db.account.insert({
+    username: data.username,
+    password: data.password
+  }, function(err, res) {
+    cb();
+  });
+}
+
+var io = require('socket.io')(serv, {});
+io.sockets.on('connection', function(socket) {
+  socket.id = Math.random();
+  socketlist[socket.id] = socket;
+
+  socket.on('signIn', function(data) {
+    isValidPassword(data, function(res) {
+      if (res) {
+        socket.emit('signInResponse', {
+          success: true
+        });
+      } else {
+        socket.emit('signInResponse', {
+          sucess: false
+        });
+      }
+    });
+  });
+  socket.on('loaded', function(data) {
+    Player.onConnect(socket, data.playerType, data.map);
+  });
+  socket.on('signUp', function(data) {
+    isUsernameTaken(data, function(res) {
+      if (res) {
+        socket.emit('signUpResponse', {
+          success: false
+        });
+      } else {
+        addUser(data, function() {
+          socket.emit('signUpResponse', {
+            success: true
+          });
+        });
+      }
+    });
+  });
+  socket.on('changeDifficulty', function(data) {
+    Map.list[playerlist[socket.id].mapId].difficulty = data.difficulty;
+  });
+  socket.on('disconnect', function() {
+    Player.onDisconnect(socket);
+    delete socketlist[socket.id];
+  });
+
+  socket.on('sendText', function(data) {
+    var playerName = '' + socket.id;
+    for (var i in socketlist) {
+      socketlist[i].emit('addToChat', playerName + ': ' + data);
+    }
+  });
 });
 
-setInterval(function(){
-	for(var i in Map.list){
-		var pack = Map.update(i);
-		for(var j in Map.list[i].playerList){
-			var socket = socketlist[Map.list[i].playerList[j].id];
-			if(socket && Map.list[i]){
-				socket.emit('remove',Map.list[i].removePack);
-				socket.emit('init',Map.list[i].initPack);
-				socket.emit('changeRow',Map.list[i].changeRowPack);
-				socket.emit('update',pack);
-			}
-		}
-		Map.list[i].initPack.players = [];
-		Map.list[i].initPack.mobs = [];
-		Map.list[i].removePack.players = [];
-		Map.list[i].removePack.mobs = [];
-		Map.list[i].changeRowPack.players = [];
-		Map.list[i].changeRowPack.mobs = [];
-		if(Math.random()<.005){ 
-			Map.list[i].addMob(new Mob(i, Map.list[i].difficulty));
-		}
-	}
-},1000/60);
+setInterval(function() {
+  for (var i in Map.list) {
+    var map = Map.list[i];
+    var pack = Map.update(i);
+    for (var j in map.playerList) {
+      var socket = socketlist[map.playerList[j].id];
+      if (socket && map) {
+        socket.emit('remove', map.removePack);
+        socket.emit('init', map.initPack);
+        socket.emit('changeRow', map.changeRowPack);
+        socket.emit('update', pack);
+      }
+    }
+    map.initPack.players = [];
+    map.initPack.mobs = [];
+    map.removePack.players = [];
+    map.removePack.mobs = [];
+    map.changeRowPack.players = [];
+    map.changeRowPack.mobs = [];
+    if (Math.random() < .005) {
+      map.addMob(new Mob(i,map.difficulty));
+    }
+  }
+}, 1000 / 60);
