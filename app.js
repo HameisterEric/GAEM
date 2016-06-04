@@ -1,7 +1,6 @@
 'use strict';
 var mongojs = require('mongojs');
-//var db = mongojs('mongodb://gaem:gaem@ds011943.mlab.com:11943/gaem', ['account','progress']);
-var db = mongojs('localhost:27017/myGame', ['account', 'progress']);
+var db = mongojs(process.env.DB, ['account', 'progress']);
 var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
