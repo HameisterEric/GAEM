@@ -196,11 +196,11 @@ class Mob extends Entity {
       Map.list[this.id].playerList[i].xp += this.xpGiven / numberOfPlayers;
     }
     for (var i in Map.list[this.id].playerList) {
-      if (Math.random() < 1 / 10 / numberOfPlayers)
+      if (Math.random() < 1 / 10 / numberOfPlayers){
         socketlist[Map.list[this.id].playerList[i].id].emit('addItem', {
-          being: this.being,
-          item: 0
+          being: this.being
         });
+			}
     }
   }
 }

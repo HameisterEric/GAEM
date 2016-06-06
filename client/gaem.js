@@ -9,7 +9,7 @@ class Item {
     this.height = height;
   }
   draw(xPosition, yPosition) {
-    ctx.drawImage(this.image, this.xImage, this.yImage, this.width, this.height, this.xPosition, this.yPosition, 32, 32);
+    ctx.drawImage(this.image, this.xImage, this.yImage, this.width, this.height, xPosition, yPosition, 32, 32);
   }
 }
 Item.list = {};
@@ -39,8 +39,9 @@ class Mob {
 Mob.list = {};
 
 class Button {
-  constructor(xStart, xEnd, yStart, yEnd, funct) {
-    this.xStart = xStart;
+  constructor(image, xStart, xEnd, yStart, yEnd, funct) {
+		this.image = image;
+		this.xStart = xStart;
     this.xEnd = xEnd;
     this.yStart = yStart;
     this.yEnd = yEnd;
@@ -56,9 +57,15 @@ class Button {
     }
   }
   draw() {
-    ctx.fillStyle = 'rgba(0,0,0,1)';
-    ctx.fillRect(this.xStart, this.yStart, this.xEnd - this.xStart, this.yEnd - this.yStart);
-  }
+		if (typeof this.image === 'string'){
+			ctx.font = (this.yEnd - this.yStart)* + 'px Ariel';
+			ctx.fillStyle = "black";
+			ctx.fillText(this.image, this.xStart, this.yEnd)
+		}
+		else{
+			ctx.drawImage(this.image, 0, 0, this.xEnd - this.xStart, this.yEnd - this.yStart, this.xStart, this.yStart,this.xEnd - this.xStart, this.yEnd - this.yStart);
+		}
+	}
 }
 
 class Sprite {
@@ -89,6 +96,11 @@ class Sprite {
   }
 }
 Sprite.list = {};
+function imageMaker(source){
+	var image = new Image();
+	image.src = source;
+	return image;
+}
 
 var socket = io();
 var signDiv = document.getElementById('signDiv');
@@ -102,11 +114,6 @@ document.addEventListener('click', onClick);
 var innerButtons = [];
 var inventory = [];
 var dooDads = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-var menuButtons = [
-  new Button(500,550,0,20,openMap),
-  new Button(550,600,0,20,drawInventory),
-  //new Button(600, 650, 0, 20, drawInventory)
-];
 
 var images = [
   { image: 'img/CharacterKnight.png', size: 32, inverse: 1 },
@@ -126,12 +133,31 @@ var images = [
 var itemImages = [
   { image: 'img/items.png', size: 32, rowLength: 16, total: 150 }
 ];
+var buttonImages = [
+	{ image: imageMaker('img/InventoryIcon.png')},
+	{ image: imageMaker('img/MapIcon.png')},
+	{ image: imageMaker('img/OptionsIcon.png')},
+	{ image: imageMaker('img/MarketIcon.png')},
+	{ image: imageMaker('img/DoodadIcon.png')},
+	{ image: imageMaker('img/InformationIcon.png')},
+	{ image: imageMaker('img/MultiplayerIcon.png')},
+	{ image: imageMaker('img/EquipmentIcon.png')}
+]
+var menuButtons = [
+  new Button(buttonImages[1].image,500,550,0,50,openMap),
+	new Button(buttonImages[4].image,550,600,0,50,temp),
+  new Button(buttonImages[0].image,600,650,0,50,drawInventory),
+	new Button(buttonImages[7].image,650,700,0,50,temp),
+	new Button(buttonImages[6].image,500,550,450,500,temp),
+	new Button(buttonImages[3].image,550,600,450,500,temp),
+	new Button(buttonImages[5].image,600,650,450,500,temp),
+	new Button(buttonImages[2].image,650,700,450,500,temp)
+];
 var itemHash = {
   mob1: [
     { item: 13, image: 0 },
     { item: 0, image: 0 },
     { item: 1, image: 0 },
-    { item: 2, image: 0 },
     { item: 2, image: 0 }
   ],
   mob2: [
@@ -182,7 +208,6 @@ var itemLoader = function() {
 var spriteLoader = function(i) {
   var image = new Image();
   image.src = images[i].image;
-  console.log(image.src);
   image.addEventListener('load', function() {
     Sprite.list[image.src.substring(image.src.indexOf('img') + 4, image.src.length - 4)] = new Sprite(image,images[i].size,images[i].size,10,images[i].inverse);
     if (i < images.length - 1)
@@ -315,56 +340,59 @@ function onClick(e) {
     innerButtons[i].isClicked(xPosition, yPosition);
   }
 }
+function temp() {
+	console.log('Button was pressed.');
+}
 function openMap() {
-  innerButtons.push(new Button(550,650,30,60,function() {
+  innerButtons.push(new Button('level 1',550,650,30,60,function() {
     socket.emit('changeDifficulty', {
       difficulty: 1
     })
   }
   ));
-  innerButtons.push(new Button(550,650,80,110,function() {
+  innerButtons.push(new Button('level 2',550,650,80,110,function() {
     socket.emit('changeDifficulty', {
       difficulty: 2
     })
   }
   ));
-  innerButtons.push(new Button(550,650,130,160,function() {
+  innerButtons.push(new Button('level 3',550,650,130,160,function() {
     socket.emit('changeDifficulty', {
       difficulty: 3
     })
   }
   ));
-  innerButtons.push(new Button(550,650,180,210,function() {
+  innerButtons.push(new Button('level 4',550,650,180,210,function() {
     socket.emit('changeDifficulty', {
       difficulty: 4
     })
   }
   ));
-  innerButtons.push(new Button(550,650,230,260,function() {
+  innerButtons.push(new Button('level 5',550,650,230,260,function() {
     socket.emit('changeDifficulty', {
       difficulty: 5
     })
   }
   ));
-  innerButtons.push(new Button(550,650,280,310,function() {
+  innerButtons.push(new Button('level 6',550,650,280,310,function() {
     socket.emit('changeDifficulty', {
       difficulty: 6
     })
   }
   ));
-  innerButtons.push(new Button(550,650,330,360,function() {
+  innerButtons.push(new Button('level 7',550,650,330,360,function() {
     socket.emit('changeDifficulty', {
       difficulty: 7
     })
   }
   ));
-  innerButtons.push(new Button(550,650,380,410,function() {
+  innerButtons.push(new Button('level 8',550,650,380,410,function() {
     socket.emit('changeDifficulty', {
       difficulty: 8
     })
   }
   ));
-  innerButtons.push(new Button(550,650,430,460,function() {
+  innerButtons.push(new Button('level 9',550,650,430,460,function() {
     socket.emit('changeDifficulty', {
       difficulty: 9
     })
@@ -374,7 +402,7 @@ function openMap() {
 
 function drawInventory() {
   for (var i = 0; i < inventory.length; i++) {
-    inventory[i].draw(500 + i % 6 * 32, Math.floor(i / 6) * 32 + 20);
+    inventory[i].draw(500 + i % 6 * 32, Math.floor(i / 6) * 32 + 50);
   }
 }
 function drawDooDads() {
